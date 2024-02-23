@@ -1,11 +1,10 @@
-# Run: nohup python lineage_tracer_simulation/simulate.py > output.log 2>&1 &
+"""Code for simulating lineage tracing data and reconstructing trees."""
 
 import sys
 import numpy as np
 import pandas as pd
 import cassiopeia as cas
 import multiprocessing as mp
-import logging
 from itertools import product
 from pathlib import Path
 from tqdm.auto import tqdm
@@ -16,53 +15,48 @@ data_path = Path(__file__).parent / "data"
 module_path = Path(__file__).parent.parent
 sys.path.append(str(module_path))
 
+# Load source
+from src.config import threads, log_path
+
 # Load config
-from config import threads, log_path
+print(threads)
 logfile = None if log_path is None else results_path / "log"
 
 # Load indel distribution
 indel_dist = pd.read_csv(data_path / "indel_distribution.tsv",sep = "\t")
 
 # Solvers
-solvers = {"nj":cas.solver.NeighborJoiningSolver(
-                cas.solver.dissimilarity.weighted_hamming_distance,
-                add_root=True,fast=True),
-           "vanilla_greedy":cas.solver.VanillaGreedySolver(),
-           "upgma":cas.solver.UPGMASolver(
-                cas.solver.dissimilarity.weighted_hamming_distance,fast=True),
-           "vanilla_hybrid": cas.solver.HybridSolver(
+solvers = {"nj":cas.solver.NeighborJoiningSolver(cas.solver.dissimilarity.weighted_hamming_distance,add_root=True,fast=True),
+           "greedy":cas.solver.VanillaGreedySolver(),
+           "upgma":cas.solver.UPGMASolver(cas.solver.dissimilarity.weighted_hamming_distance,fast=True),
+           "hybrid": cas.solver.HybridSolver(
                 top_solver = cas.solver.VanillaGreedySolver(),
-                bottom_solver= cas.solver.ILPSolver(
-                    convergence_time_limit=10,
-                    maximum_potential_graph_layer_size=1000,
-                    maximum_potential_graph_lca_distance = 10),
-               cell_cutoff=20, threads=1, progress_bar =False)}
+                bottom_solver= cas.solver.ILPSolver(convergence_time_limit=100,
+                                                    maximum_potential_graph_layer_size=1000,
+                                                    maximum_potential_graph_lca_distance = 10),
+               cell_cutoff=20, threads=1,progress_bar=False)}
 
-# Lineage simulators
-lineage_simulators = {
-    "lognormal_fit": lambda num_extant: cas.sim.BirthDeathFitnessSimulator(
-        birth_waiting_distribution = lambda scale: 
-            np.random.lognormal(mean = np.log(scale),sigma = .5),
+# Lineage simulator
+def lineage_simulator(num_extant):
+    return cas.sim.BirthDeathFitnessSimulator(
+        birth_waiting_distribution = lambda scale: np.random.lognormal(mean = np.log(scale),sigma = .5),
         initial_birth_scale = 1,
         death_waiting_distribution = lambda: np.random.uniform(0,4),
-        mutation_distribution = lambda: 1,
-        fitness_distribution = lambda: np.random.normal(0, .25),
+        mutation_distribution = lambda: 0,
+        fitness_distribution = lambda: 0,
         fitness_base = 1,
-        num_extant = num_extant),
-}
+        num_extant = num_extant)
 
-# Tracing simulators
-tracing_simulators = {
-    "pe": lambda cassettes, edit_rate, missing_rate, state_priors: 
-    cas.sim.Cas9LineageTracingDataSimulator(
-        number_of_cassettes = cassettes,
-        size_of_cassette = 3,
+# Tracing simulator
+def tracing_simulator(characters, edit_rate, missing_rate, state_priors):
+    return cas.sim.Cas9LineageTracingDataSimulator(
+        number_of_cassettes = characters,
+        size_of_cassette = 1,
         mutation_rate = edit_rate,
         state_priors = state_priors, 
         heritable_silencing_rate=0,
         collapse_sites_on_cassette=False,
-        stochastic_silencing_rate = missing_rate),
-}
+        stochastic_silencing_rate = missing_rate)
 
 # Helper functions
 def normalized_entropy(distribution):
@@ -95,7 +89,7 @@ def edit_frac_to_mutation_rate(tree,edit_frac):
 def eval_tree(param):
     np.random.seed(int(param["iteration"]))
     # Simulate the tree
-    lineage_sim = lineage_simulators[param["tree_simulator"]](int(param["size"]))
+    lineage_sim = lineage_simulator(int(param["size"]))
     tree = None
     while tree is None:
         try: tree = lineage_sim.simulate_tree()
@@ -107,24 +101,24 @@ def eval_tree(param):
         dist = generate_state_distribution(param["states"],param["entropy"])
         state_priors = {i+1: p for i, p in enumerate(dist)}
     # Simulate the data
-    tracing_simulators[param["tracing_simulator"]](param["cassettes"],
-        edit_frac_to_mutation_rate(tree,param["edit_frac"]),
-        param["missing_rate"],state_priors).overlay_data(tree)
+    mutation_rate = edit_frac_to_mutation_rate(tree,param["edit_frac"])
+    tracing_simulator(param["characters"],mutation_rate,
+                      param["missing_rate"],state_priors).overlay_data(tree)
     # Reconstruct tree
     reconstructed_tree = tree.copy()
-    if param["solver"] in ["vanilla_greedy","vanilla_hybrid"]:
-        reconstructed_tree.priors = {i:state_priors for i in range (param["cassettes"]*3)}
-    solvers[param["solver"]].solve(reconstructed_tree,logfile = logfile)
+    if param["solver"] in ["greedy","hybrid"]:
+        reconstructed_tree.priors = {i:state_priors for i in range (param["characters"])}
+    solvers[param["solver"]].solve(reconstructed_tree,logfile = None)
     # Calculate metrics
-    triplets = cas.critique.compare.triplets_correct(
-        tree, reconstructed_tree, number_of_trials=500,min_triplets_at_depth=5)
+    triplets = cas.critique.compare.triplets_correct(tree, reconstructed_tree, 
+                                                     number_of_trials=1000,min_triplets_at_depth=100)
     mean_triplets = np.mean(list(triplets[0].values())) 
     rf, rf_max = cas.critique.compare.robinson_foulds(tree, reconstructed_tree)
     # Format results
-    result = pd.DataFrame({"triplets":mean_triplets,"rf":rf/rf_max},index = [0])
+    result = pd.DataFrame({"mean_triplets":mean_triplets,"rf":rf/rf_max},index = [0])
     result["triplets_by_depth"] = [list(triplets[0].values())]
     for key in param.keys():
-        if type(param[key]) is list:
+        if isinstance(param[key],list):
             result[key] = [param[key]]
         else:
             result[key] = param[key]
@@ -133,106 +127,68 @@ def eval_tree(param):
 # Simulate trees varying the number of states and the entropy
 def state_distribution_simulation(threads = 30):
     # Define parameters
-    params = {"solver":["vanilla_greedy","nj","vanilla_hybrid","upgma"],
-            "tree_simulator":["lognormal_fit"],
-            "tracing_simulator":["pe"],
-            "size":[1000],
-            "edit_frac":[0.7],
-            "cassettes":[8],
-            "missing_rate":[0],
-            "entropy":[1,.9,.8,.7,.6,.5],
-            "states":[2,4,6,8,10,12,14,16,18,20],
-            "indel_dist":[False],  
-            "iteration":range(10)}
+    params = {"solver":["nj","upgma","greedy","hybrid"],
+        "size":[1000],
+        "edit_frac":[0.7],
+        "characters":[60],
+        "missing_rate":[.1],
+        "entropy":[1,.9,.8,.7,.6,.5],
+        "states":[2,4,6,8,10,12,14,16,18,20],
+        "indel_dist":[False],
+        "iteration":range(10)} 
     params = pd.DataFrame(list(product(*params.values())), columns=params.keys())
     # Test parameters in parallel
     with mp.Pool(processes=threads) as pool:
         parallel_list = [row.to_dict() for index,row in params.iterrows()]
         results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
-                            total=len(parallel_list)))
+                                total=len(parallel_list)))
         results = pd.concat(results)
     results.to_csv(results_path / "state_distribution_simulation.tsv",
                    index = False,sep = "\t")
 
-# Simulate trees varying the number of cassettes and the missing rate
-def missing_vs_cassettes_simulation(threads = 30):
+# Simulate trees sweeping the other parameters
+def parameter_sweep_simulation(threads = 30):
     # Define parameters
-    params = {"solver":["vanilla_greedy","nj","vanilla_hybrid","upgma"],
-            "tree_simulator":["lognormal_fit"],
-            "tracing_simulator":["pe"],
-            "size":[1000],
-            "edit_frac":[0.7],
-            "cassettes":[5,10,15,20,25],
-            "missing_rate":[0,.1,.2,.3],
-            "entropy":[1],
-            "states":[8],
-            "indel_dist":[True,False],
-            "iteration":range(10)}
-    params = pd.DataFrame(list(product(*params.values())), columns=params.keys())
+    default_params = {"solver":["greedy","nj","upgma","hybrid"],
+        "tree_simulator":["lognormal_fit"],
+        "tracing_simulator":["pe"],
+        "size":[1000],
+        "edit_frac":[0.7],
+        "missing_rate":[.1],
+        "characters":[60],
+        "entropy":[1],
+        "states":[8],
+        "indel_dist":[True,False],
+        "iteration":range(10)}
+    param_ranges = {"size":[500,1000,2000,5000,10000],
+        "edit_frac":[0.3,0.5,0.7,0.9],
+        "characters":[20,40,60,80,100],
+        "missing_rate":[0,.1,.2,.3,.4,.5]}
+    # Generate parameter combinations
+    params = []
+    for param in param_ranges.keys():
+        for value in param_ranges[param]:
+            value_params = pd.DataFrame(list(product(*default_params.values())), columns=default_params.keys())
+            value_params.loc[:,param] = value
+            params.append(value_params)
+    params = pd.concat(params)
     # Test parameters in parallel
     with mp.Pool(processes=threads) as pool:
         parallel_list = [row.to_dict() for index,row in params.iterrows()]
         results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
-                            total=len(parallel_list)))
+                                total=len(parallel_list)))
         results = pd.concat(results)
-    results.to_csv(results_path / "missing_vs_cassettes_simulation.tsv",
-                   index = False,sep = "\t")
-    
-# Simulate trees varying the number of cassettes and number of cells
-def size_vs_cassettes_simulation(threads = 30):
-    # Define parameters
-    params = {"solver":["vanilla_greedy","nj","vanilla_hybrid","upgma"],
-            "tree_simulator":["lognormal_fit"],
-            "tracing_simulator":["pe"],
-            "size":[500,1000,2000,5000],
-            "edit_frac":[0.7],
-            "cassettes":[5,10,15,20,25],
-            "missing_rate":[0],
-            "entropy":[1],
-            "states":[8],
-            "indel_dist":[True,False],
-            "iteration":range(10)}
-    params = pd.DataFrame(list(product(*params.values())), columns=params.keys())
-    # Test parameters in parallel
-    with mp.Pool(processes=threads) as pool:
-        parallel_list = [row.to_dict() for index,row in params.iterrows()]
-        results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
-                            total=len(parallel_list)))
-        results = pd.concat(results)
-    results.to_csv(results_path / "size_vs_cassettes_simulation.tsv",
-                   index = False,sep = "\t")
-    
-def size_vs_cassettes_simulation(threads = 30):
-    # Define parameters
-    params = {"solver":["vanilla_greedy","nj","vanilla_hybrid","upgma"],
-            "tree_simulator":["lognormal_fit"],
-            "tracing_simulator":["pe"],
-            "size":[500,1000,2000,5000],
-            "edit_frac":[0.7],
-            "cassettes":[5,10,15,20,25],
-            "missing_rate":[0],
-            "entropy":[1],
-            "states":[8],
-            "indel_dist":[True,False],
-            "iteration":range(10)}
-    params = pd.DataFrame(list(product(*params.values())), columns=params.keys())
-    # Test parameters in parallel
-    with mp.Pool(processes=threads) as pool:
-        parallel_list = [row.to_dict() for index,row in params.iterrows()]
-        results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
-                            total=len(parallel_list)))
-        results = pd.concat(results)
-    results.to_csv(results_path / "size_vs_cassettes_simulation.tsv",
+    results.to_csv(results_path / "parameter_sweep_simulation.tsv",
                    index = False,sep = "\t")
     
 def test(threads = 30):
     # Define parameters
-    params = {"solver":["vanilla_hybrid"],
+    params = {"solver":["nj"],
             "tree_simulator":["lognormal_fit"],
             "tracing_simulator":["pe"],
             "size":[500,1000],
             "edit_frac":[0.7],
-            "cassettes":[5],
+            "characters":[10],
             "missing_rate":[0],
             "entropy":[1],
             "states":[8],
@@ -242,6 +198,7 @@ def test(threads = 30):
     # Test parameters in parallel
     parallel_list = [row.to_dict() for index,row in params.iterrows()]
     results = eval_tree(parallel_list[0])
+    print(results)
     #with mp.Pool(processes=threads) as pool:
     #    parallel_list = [row.to_dict() for index,row in params.iterrows()]
     #    results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
@@ -254,7 +211,5 @@ def test(threads = 30):
 if __name__ == "__main__":
     #print("Simulating trees varying the number of states and the entropy")
     #state_distribution_simulation(threads = threads)
-    #print("Simulating trees varying the number of cassettes and the missing rate")
-    #missing_vs_cassettes_simulation(threads = threads)
-    print("Simulating trees varying the number of cassettes and number of cells")
-    size_vs_cassettes_simulation(threads = threads)
+    #print("Simulating trees sweeping the other parameters")
+    #param_sweep_simulation(threads = threads)
