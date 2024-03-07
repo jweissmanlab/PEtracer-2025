@@ -1,4 +1,4 @@
-	mean_triplets	rf	triplets_by_depth	solver	tree_simulator	tracing_simulator	size	edit_frac	missing_rate	characters	entropy	states	indel_dist	iteration
+	triplets	rf	triplets_by_depth	solver	tree_simulator	tracing_simulator	size	edit_frac	missing_rate	characters	entropy	states	indel_dist	iteration
 0	0.9249999999999999	0.2716297786720322	[1.0, 1.0, 0.778, 0.975, 1.0, 0.956, 0.983, 0.79, 0.998, 0.978, 0.995, 0.69, 0.932, 0.875]	nj	lognormal_fit	pe	500	0.7	0.1	60	1	8	False	2
 0	0.9267272727272728	0.22736418511066397	[1.0, 1.0, 1.0, 0.775, 1.0, 0.794, 0.984, 0.957, 0.816, 0.96, 0.908]	nj	lognormal_fit	pe	500	0.7	0.1	60	1	8	False	5
 0	0.9425454545454546	0.26961770623742454	[1.0, 0.966, 1.0, 1.0, 0.989, 0.938, 0.922, 0.917, 0.892, 0.931, 0.813]	nj	lognormal_fit	pe	500	0.7	0.1	60	1	8	False	3

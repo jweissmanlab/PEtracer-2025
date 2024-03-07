@@ -3,27 +3,130 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from pathlib import Path
 
-# Configure paths
+# Configure
 results_path = Path(__file__).parent / "results"
 plots_path = Path(__file__).parent / "plots"
-module_path = Path(__file__).parent.parent
-sys.path.append(str(module_path))
+base_path = Path(__file__).parent.parent
+sys.path.append(str(base_path))
+plt.style.use(base_path / 'plot.mplstyle')
+
+# Load source
+from src.utils import save_plot
+from src.config import default_colors
+
+# Define constants
+metrics = {"rf":"Robinson-Foulds dist",
+           "triplets":"Mean triplets correct"}
+solvers = {"nj":"Neighbor Joining",
+            "upgma":"UPGMA",
+            "hybrid":"Cassiopeia Hybrid"}
+params = {"size":"Number of cells",
+          "edit_frac":"Fraction of\ncharacters edited",
+          "characters":"Number of characters",
+          "missing_rate":"Fraction of\ncharacters missing"}
+param_defaults = {"size":1000,
+                 "edit_frac":.7,
+                 "characters":60,
+                "missing_rate":.1}
 
 # Load results
 state_dist_results = pd.read_csv(
     results_path / "state_distribution_simulation.tsv",sep="\t")
+param_results = pd.read_csv(
+    results_path / "parameter_sweep_simulation.tsv",sep="\t")
 
-# RF line plot for entropy vs. number of states
-def rf_vs_state_distribution_lineplot():
-    sns.lineplot(data=state_dist_results, x="states", y="rf", 
+# Remove greedy solver
+state_dist_results = state_dist_results[state_dist_results["solver"] != "greedy"]
+param_results = param_results[param_results["solver"] != "greedy"]
+
+# State distribution line plot
+def state_distribution_lineplot(results,metric,metric_label):
+    fig = plt.figure(figsize=(2,2))
+    sns.lineplot(data=results[results[f'best_{metric}']], x="states", y=metric, 
         hue="entropy")
-    plot_name = "rf_vs_state_distribution_lineplot"
-    plt.savefig(plots_path / f"{plot_name}.png")
-    plt.savefig(plots_path / f"{plot_name}.svg")
+    plt.xlabel("Number of states")
+    plt.ylabel(metric_label)
+    plt.xticks(results['states'].unique());
+    plt.legend(title="$H_{norm}$",bbox_to_anchor=(1.05, 1), borderaxespad=0)
+    return plt
+
+# Heatmap for each solver
+def solver_heatmaps(results,x,xlabel,y,ylabel,metric,metric_label,
+                           cmap = "viridis", log = False):
+    metric_min = results[metric].min()
+    metric_max = results[metric].max()
+    fig, axes = plt.subplots(1, 3, figsize=(5.5, 2.3), sharey=True)
+    cbar_ax = fig.add_axes([.91, .3, .03, .4])
+    for i, solver in enumerate(solvers.keys()):
+        ax = axes[i]
+        metric_mat = results[results["solver"] == solver].pivot_table(index=y, 
+                             columns=x, values=metric, aggfunc='mean')
+        sns.heatmap(metric_mat, ax=ax, cbar=i == 0, cbar_ax=None if i else cbar_ax, 
+                    cmap=cmap, vmin=metric_min, vmax=metric_max)
+        for j, j_value in enumerate(metric_mat.index):
+            for k, k_value in enumerate(metric_mat.columns):
+                value = metric_mat.loc[j_value, k_value]
+                is_best = results[(results[x] == k_value) & (results[y] == j_value) & 
+                                  (results[f'best_{metric}'])]['solver'].iloc[0] == solver
+                weight = 'bold' if is_best else 'normal'
+                ax.text(k + 0.5, j + 0.5, f'{value:.2f}'.lstrip('0'), ha='center', va='center', 
+                        fontsize=7.5, fontweight = weight)
+        ax.set_title(solvers[solver])
+        ax.set_xlabel(xlabel if i == 1 else "") 
+        if i == 0:
+            ax.set_ylabel(ylabel)
+            ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+        else:
+            ax.set_ylabel("")
+    plt.tight_layout(rect=[0, 0, .9, 1])
+    return plt
+
+# Line plot for each parameter
+def parameter_lineplots(results,metric,metric_label):
+    metric_min = results[metric].min()
+    metric_max = results[metric].max()
+    solver_colors = {solver: default_colors[i] for i, solver in enumerate(solvers.keys())}
+    fig, axes = plt.subplots(1, 4, figsize=(7, 2))
+    for i, param in enumerate(params.keys()):
+        param_results = results.copy()
+        for var_param in params.keys():
+            if var_param != param:
+                param_results = param_results[param_results[var_param] == param_defaults[var_param]]
+        sns.lineplot(x=param, y=metric, hue="solver", style="indel_dist", data=param_results,
+                    palette=solver_colors , ax=axes[i], legend=False, markers=True)
+        axes[i].set_ylim(metric_min, metric_max) 
+        axes[i].set_xlabel(params[param])
+        axes[i].set_ylabel(metric_label)
+        axes[i].set_xticks(param_results[param].unique())
+        # Remove top and right spines
+        axes[i].spines['top'].set_visible(False)
+        axes[i].spines['right'].set_visible(False)
+        if param == "size":
+            axes[i].set_xscale('log')
+    # Add solver legend
+    solver_handles = [mlines.Line2D([], [], color=solver_colors[solver], 
+                    label=solvers[solver].replace(" ","\n")) for solver in solvers.keys()]
+    fig.legend(handles=solver_handles, loc='upper right', bbox_to_anchor=(1.17, 1), title="Solver")
+    # Add tracer legend
+    indel_handles = [mlines.Line2D([], [], color='black', linestyle='-',marker = 'o', label="8 uniform"),
+                    mlines.Line2D([], [], color='black', linestyle='--',marker = 'x', label="Indel")]
+    fig.legend(handles=indel_handles, loc='upper right', bbox_to_anchor=(1.17, 0.4), title="State distribution")
+    plt.tight_layout()
+    return plt
 
 # Generate plots
 if __name__ == "__main__":
-    rf_vs_state_distribution_lineplot()
+    for metric, label in metrics.items():
+        cmap = "viridis" if metric == "triplets" else "viridis_r"
+        save_plot(state_distribution_lineplot(state_dist_results,metric,label), 
+                    f"{metric}_vs_state_distribution", plots_path)
+        save_plot(solver_heatmaps(state_dist_results,"entropy","$H_{norm}$",
+                    "states","Number of states",metric,label,cmap = cmap),
+                    f"{metric}_state_distribution_heatmap", plots_path)
+        save_plot(parameter_lineplots(param_results,metric,label),
+                    f"{metric}_vs_parameter", plots_path)
+        
 

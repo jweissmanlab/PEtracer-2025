@@ -12,8 +12,8 @@ from tqdm.auto import tqdm
 # Configure paths
 results_path = Path(__file__).parent / "results"
 data_path = Path(__file__).parent / "data"
-module_path = Path(__file__).parent.parent
-sys.path.append(str(module_path))
+base_path = Path(__file__).parent.parent
+sys.path.append(str(base_path))
 
 # Load source
 from src.config import threads, log_path
@@ -85,6 +85,19 @@ def edit_frac_to_mutation_rate(tree,edit_frac):
     mutation_rate = -(np.log(1 - edit_frac) / total_time) * .9
     return mutation_rate
 
+def identify_best_solver(results,group,metric = "rf",max = False):
+    results = results.copy()
+    average_value = results.groupby(group + ['solver'], as_index=False)[metric].mean()
+    if max:
+        best_solver_idx = average_value.groupby(group)[metric].idxmax()
+    else:
+        best_solver_idx = average_value.groupby(group)[metric].idxmin()
+    average_value['best_solver'] = average_value.index.isin(best_solver_idx)
+    results = results.merge(average_value[group + ['solver', 'best_solver']], 
+                            on=group + ['solver'], 
+                            how='left')
+    return results["best_solver"].values
+
 # Tree evaluation
 def eval_tree(param):
     np.random.seed(int(param["iteration"]))
@@ -115,7 +128,7 @@ def eval_tree(param):
     mean_triplets = np.mean(list(triplets[0].values())) 
     rf, rf_max = cas.critique.compare.robinson_foulds(tree, reconstructed_tree)
     # Format results
-    result = pd.DataFrame({"mean_triplets":mean_triplets,"rf":rf/rf_max},index = [0])
+    result = pd.DataFrame({"triplets":mean_triplets,"rf":rf/rf_max},index = [0])
     result["triplets_by_depth"] = [list(triplets[0].values())]
     for key in param.keys():
         if isinstance(param[key],list):
@@ -143,6 +156,8 @@ def state_distribution_simulation(threads = 30):
         results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
                                 total=len(parallel_list)))
         results = pd.concat(results)
+    results["best_triplets"] = identify_best_solver(results, ["entropy", "states"], metric = "triplets", max=True)
+    results["best_rf"] = identify_best_solver(results, ["entropy", "states"], metric = "rf")
     results.to_csv(results_path / "state_distribution_simulation.tsv",
                    index = False,sep = "\t")
 
@@ -180,35 +195,10 @@ def parameter_sweep_simulation(threads = 30):
         results = pd.concat(results)
     results.to_csv(results_path / "parameter_sweep_simulation.tsv",
                    index = False,sep = "\t")
-    
-def test(threads = 30):
-    # Define parameters
-    params = {"solver":["nj"],
-            "tree_simulator":["lognormal_fit"],
-            "tracing_simulator":["pe"],
-            "size":[500,1000],
-            "edit_frac":[0.7],
-            "characters":[10],
-            "missing_rate":[0],
-            "entropy":[1],
-            "states":[8],
-            "indel_dist":[True,False],
-            "iteration":range(10)}
-    params = pd.DataFrame(list(product(*params.values())), columns=params.keys())
-    # Test parameters in parallel
-    parallel_list = [row.to_dict() for index,row in params.iterrows()]
-    results = eval_tree(parallel_list[0])
-    print(results)
-    #with mp.Pool(processes=threads) as pool:
-    #    parallel_list = [row.to_dict() for index,row in params.iterrows()]
-    #    results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
-    #                        total=len(parallel_list)))
-    #    results = pd.concat(results)
-    #results.to_csv(results_path / "size_vs_cassettes_simulation.tsv",
-    #               index = False,sep = "\t")
 
 # Run simulations
 if __name__ == "__main__":
+    pass
     #print("Simulating trees varying the number of states and the entropy")
     #state_distribution_simulation(threads = threads)
     #print("Simulating trees sweeping the other parameters")
