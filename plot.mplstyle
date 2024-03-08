@@ -7,3 +7,8 @@ axes.spines.right  : False
 axes.spines.top    : False
 font.family        : Arial
 axes.linewidth  : 1.2
+legend.fontsize: 9
+legend.title_fontsize: 10
+legend.labelspacing: 0.1
+legend.handletextpad: 0.5
+legend.handlelength: 1.5
