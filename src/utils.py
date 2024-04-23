@@ -1,6 +1,7 @@
 from pathlib import Path
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPDF
+import pickle
 
 
 def save_plot(plt, plot_name, plots_path='.'):
@@ -10,6 +11,7 @@ def save_plot(plt, plot_name, plots_path='.'):
 
 
 def render_plot(c, label, path, x, y, scale = 1,x_offset=10,y_offset=20):
+    scale = scale * .72
     x = x * 72
     y = (11 - y) * 72
     if path is not None:
