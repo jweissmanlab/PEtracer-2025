@@ -7,6 +7,7 @@ threads = 30
 log_path = None
 
 # Names
+preedited_clone_names = {0:"Normal",1:"Clone 1",2:"Clone 2",3:"Clone 3",4:"Clone 4"}
 site_names = {"RNF2":"Edit site 1", "HEK3":"Edit site 2", "EMX1":"Edit site 3"}
 edit_names = {'EMX1': {'None': 0,
   'GGACA': 1,
@@ -37,7 +38,17 @@ edit_names = {'EMX1': {'None': 0,
   'ATTTA': 8}}
 
 # MERFISH parameters
-min_spot_intensity = 1000
+min_spot_intensity = 800
+default_decoder = "v4_edit_decoder.pkl"
+img_paths = {
+    "preedited_invitro": {
+        "path": "/lab/weissman_imaging/puzheng/PE_LT/20240426-fullyEdited4T1_ingel_IntBCv2_combinedEditv3/",
+        "analysis": "/lab/weissman_imaging/wcolgan/MERFISH_Data/20240426-fullyEdited4T1_ingel_IntBCv2_combinedEditv3/Analysis/",
+        "file_pattern": "{series}/Conv_zscan_{fov:02d}.dax"},
+      "preedited_invivo": {
+        "path": "/lab/weissman_imaging/puzheng/PE_LT/20240424-F242dpec_T7afterMerfish/",
+        "file_pattern": "{series}/Conv_zscan_{fov:03d}.dax"},
+}
 
 # Default colors
 colors = ["black", "#1874CD", "#CD2626","#FFE600","#009E73","#8E0496","#E69F00"]
