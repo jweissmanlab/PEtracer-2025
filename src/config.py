@@ -9,7 +9,7 @@ log_path = None
 # Names
 preedited_clone_names = {0:"Normal",1:"Clone 1",2:"Clone 2",3:"Clone 3",4:"Clone 4"}
 site_names = {"RNF2":"Edit site 1", "HEK3":"Edit site 2", "EMX1":"Edit site 3"}
-edit_names = {'EMX1': {'None': 0,
+edit_ids = {'EMX1': {'None': 0,
   'GGACA': 1,
   'ACAAT': 2,
   'CCCTA': 3,
@@ -36,6 +36,10 @@ edit_names = {'EMX1': {'None': 0,
   'ATCAA': 6,
   'CTCTC': 7,
   'ATTTA': 8}}
+edit_names = {}
+for site in edit_ids:
+    edit_names[site] = {"None":"Unedited"}
+    edit_names[site].update({edit:f"LM {edit_ids[site][edit]}" for edit in edit_ids[site] if edit != "None"})
 
 # MERFISH parameters
 min_spot_intensity = 800

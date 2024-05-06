@@ -5,10 +5,10 @@ from reportlab.lib.utils import ImageReader
 import pickle
 
 
-def save_plot(plt, plot_name, plots_path='.'):
+def save_plot(plt, plot_name, plots_path='.',transparent=False):
     plots_path = Path(plots_path)
     for fmt in ['png', 'svg']:
-        plt.savefig(plots_path / f"{plot_name}.{fmt}", bbox_inches='tight', pad_inches=0)
+        plt.savefig(plots_path / f"{plot_name}.{fmt}", bbox_inches='tight', pad_inches=0, transparent=transparent)
 
 
 def render_plot(c, label, path, x, y, scale=1, x_offset=10, y_offset=25):
