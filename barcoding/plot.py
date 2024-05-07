@@ -35,7 +35,7 @@ def site_edit_rates(plot_name):
     site_edit_rate["site"] = site_edit_rate["site"].map(site_names).str.split(" ").str[-1]
     site_edit_rate = site_edit_rate.sort_values("site")
 
-    fig, ax = plt.subplots(figsize=(2, 2),dpi = 300)
+    fig, ax = plt.subplots(figsize=(1.5, 1.8),dpi = 300)
 
     sns.barplot(data = site_edit_rate, y = "rate",x = "site",hue = "site",palette = discrete_cmap[3],
         dodge = False, errwidth=2,errcolor = "black",saturation = 1)
@@ -51,7 +51,7 @@ def fmi_violin(plot_name):
     stats_shuffled = pd.read_csv(results_path / "tree_stats_shuffled.csv")
     stats_with_shuffled = pd.concat([stats,stats_shuffled])
 
-    fig, ax = plt.subplots(figsize=(2, 2),dpi = 300)
+    fig, ax = plt.subplots(figsize=(1.5, 1.8),dpi = 300)
 
     sns.violinplot(data=stats_with_shuffled.query("solver == 'nj'"), x="shuffled", y="fmi",inner = None, 
                 palette=discrete_cmap[2],saturation=1,linewidth =.5,bw = 1)
@@ -134,18 +134,18 @@ def tree_with_edits(clone,solver,figsize,plot_name):
     edit_labels = [name for name in edit_names["EMX1"].values()] + ["Other"]
     legend_handles = [mpatches.Rectangle((0, 0), 1, 1, color=color, label=label)
                     for color, label in zip(edit_colors,edit_labels)]
-    fig.legend(handles=legend_handles,loc = 'upper left',bbox_to_anchor=(.94,.96),ncol=1)
+    fig.legend(handles=legend_handles,loc='lower left',bbox_to_anchor=(.94,.04),ncol=1)
     save_plot(fig,plot_name,plots_path)
 
 # Generate plots
 if __name__ == "__main__":
     site_edit_rates("site_edit_rates")
-    #fmi_violin("fmi_violin")
+    fmi_violin("fmi_violin")
     #nj_vs_upgma_fmi("nj_vs_upgma_fmi")
     #params = [(clone, "nj", (6,6), True, f"Clone {clone}",
     #           f"clone_{clone}_tree") for clone in range(1,7)]
     #with mp.Pool(processes=threads) as pool:
     #    results = pool.starmap(tree_with_clades, params)
     #tree_with_clades(5,"nj",(6.5,6.5),False,None,"example_tree")
-    #tree_with_edits(5,"nj",(3.5,2.5),"example_tree_with_edits")
+    #tree_with_edits(5,"nj",(3.2,2.4),"example_tree_with_edits")
 

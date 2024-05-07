@@ -19,7 +19,8 @@ def render_plot(c, label, path, x, y, scale=1, x_offset=10, y_offset=25):
         file_extension = str(path).split('.')[-1].lower()
         if file_extension == 'svg':
             drawing = svg2rlg(str(path))
-            drawing.scale(scale, scale)
+            if scale != 1:
+                drawing.scale(scale, scale)
             renderPDF.draw(drawing, c, x + x_offset, y - drawing.height * scale - y_offset)
         elif file_extension == 'png':
             image = ImageReader(str(path))

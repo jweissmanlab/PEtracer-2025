@@ -16,11 +16,12 @@ c = canvas.Canvas(str(figure_path / "f5.pdf"), pagesize=(8.5*72, 11*72))
 c.setFont("Helvetica", 16)
 
 # Render panels
-render_plot(c, "A", None, 0, 0)
-render_plot(c, "B", barcoding_path / "example_tree_with_edits.png", 0, 1.6,scale = 1.1,y_offset=15)
-render_plot(c, "C", barcoding_path / "example_tree.svg", 4, 1.6, y_offset=5,x_offset=0)
-render_plot(c, "D", barcoding_path / "fmi_violin.svg", 0, 4)
-render_plot(c, "E", barcoding_path / "site_edit_rates.svg", 2, 4)
+render_plot(c, "A", barcoding_path / "barcoding_schematic.svg",0, 0,y_offset=5,x_offset=30)
+render_plot(c, "B", barcoding_path / "example_tree_with_edits.png", 0, 1.8,y_offset=20,x_offset=0,scale = .9)
+render_plot(c, "C", barcoding_path / "example_tree.svg", 2.8, 0, y_offset=-5,x_offset=0,scale = .9)
+render_plot(c, "D", barcoding_path / "site_edit_rates.svg", 6.7, 0)
+render_plot(c, "E", barcoding_path / "fmi_violin.svg", 6.7, 1.9)
+
 
 
 
