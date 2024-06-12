@@ -1,11 +1,14 @@
 import sys
 from pathlib import Path
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
 
 # Configure paths
 figure_path = Path(__file__).parent
 base_path = Path(__file__).parent.parent
-sim_path = base_path / "lineage_tracer_simulation" / "plots"
+sim_path = base_path / "simulation" / "plots"
+legend_path = base_path / "legends" / "plots"
 sys.path.append(str(base_path))
 
 # Load source
@@ -13,15 +16,17 @@ from src.utils import render_plot
 
 # Make canvas
 c = canvas.Canvas(str(figure_path / "s1.pdf"), pagesize=(8.5*72, 11*72))
-c.setFont("Helvetica", 16)
+pdfmetrics.registerFont(TTFont('Arial', 'Arial.ttf'))
+c.setFont('Arial', 16)
 
 # Render panels
-render_plot(c, "A", sim_path / "rf_state_distribution_heatmap.svg", 0, 0, .85)
-render_plot(c, "B", sim_path / "rf_vs_state_distribution.svg", 5.6, 0, .9,y_offset=30)
-render_plot(c, "C", sim_path / "triplets_state_distribution_heatmap.svg", 0, 2.5, .85)
-render_plot(c, "D", sim_path / "triplets_vs_state_distribution.svg", 5.6, 2.5, .9,y_offset=30)
-render_plot(c, "E", sim_path / "rf_vs_parameter.svg", 0, 4.9, .95,y_offset=35)
-render_plot(c, "F", sim_path / "triplets_vs_parameter.svg", 0, 7.5, .95)
+render_plot(c, "A", None, 0, 0)
+render_plot(c, "B", sim_path / "rf_heatmap_entropy_vs_states.svg", 3, 0)
+render_plot(c, "C", sim_path / "rf_heatmap_edit_frac_vs_states.svg", 5.3, 0)
+render_plot(c, "", legend_path / "rf_cbar.svg", 7.7, 0,x_offset=0,y_offset=30)
+render_plot(c, "D", sim_path / "rf_parameter_sweep_lineplot.svg", 0, 2.4)
+render_plot(c, "D", sim_path / "rf_parameter_sweep_lineplot.svg", 0, 2.4)
+render_plot(c, "E", sim_path / "min_characters_lineplot.svg", 0, 4.7)
 
 # Save canvas
 c.save()
