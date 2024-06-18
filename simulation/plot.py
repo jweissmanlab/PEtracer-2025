@@ -25,15 +25,15 @@ solver_names = {"upgma":"UPGMA",
             "nj":"NJ",
             "greedy":"Greedy"}
 param_names = {"size":"Number of cells",
-          "edit_frac":"Characters edited (%)",
-          "characters":"Number of characters",
-          "missing_rate":"Characters missing (%)",
-          "states":"Number of edit states",
-          "entropy":"State distribution ($H_{norm}$)",}
+          "edit_frac":"Sites edited (%)",
+          "characters":"Number of sites",
+          "detection_rate":"Detection rate (%)",
+          "states":"Number of LMs",
+          "entropy":"LM distribution ($H_{norm}$)",}
 param_defaults = {"size":1000,
                  "edit_frac":70,
                  "characters":60,
-                "missing_rate":10}
+                 "detection_rate":90}
 solver_colors = colors[1:3] + [colors[4]]
 solver_colors = {solver: solver_colors[i] for i, solver in enumerate(solver_names.keys())}
 
@@ -42,7 +42,7 @@ solver_colors = {solver: solver_colors[i] for i, solver in enumerate(solver_name
 def metric_heatmap(data,x,y,metric = "rf",vmin = 0,vmax = 1,figsize = (2.2,2.2)):
     data = data.copy()
     data["edit_frac"] = (data["edit_frac"] * 100).astype(int)
-    data["missing_rate"] = (data["missing_rate"] * 100).astype(int)
+    data["detection_rate"] = (100 - data["missing_rate"] * 100).astype(int)
     data = data.pivot_table(index = y,columns = x,values = metric)
     data = data.sort_index(ascending = False)
     fig, ax = plt.subplots(figsize = figsize)
@@ -55,10 +55,10 @@ def metric_heatmap(data,x,y,metric = "rf",vmin = 0,vmax = 1,figsize = (2.2,2.2))
     save_plot(fig, f"{metric}_heatmap_{x}_vs_{y}", plots_path)
 
 # Parameter sweep line plots
-def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","missing_rate"]):
+def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","detection_rate"]):
     data = data.query("solver.isin(@solver_names.keys())").copy()
     data["edit_frac"] = (data["edit_frac"] * 100).astype(int)
-    data["missing_rate"] = (data["missing_rate"] * 100).astype(int)
+    data["detection_rate"] = (100 - data["missing_rate"] * 100).astype(int)
     metric_min = data[metric].min()
     metric_max = data[metric].max()
     fig, axes = plt.subplots(1, 4, figsize=(7.1, 2.2),layout = "constrained")
@@ -103,8 +103,9 @@ def min_characters_lineplot(figsize=(2, 2)):
     sns.lineplot(x="cells", y="characters", data=data, hue="min_pct",palette=colors[:3])
     plt.legend(title="Branches \nwith edit (%)",alignment = "left")
     plt.xscale('log')
-    plt.xlabel("Number of cells")
-    plt.ylabel("Number of characters")
+    plt.xlabel(param_names["size"])
+    plt.ylabel(param_names["characters"])
+    ax.xaxis.set_major_locator(ticker.FixedLocator([1e3, 1e6, 1e9]))
     save_plot(fig, "min_characters_lineplot", plots_path)
 
 if __name__ == "__main__":
