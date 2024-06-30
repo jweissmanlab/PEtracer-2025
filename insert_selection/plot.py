@@ -17,59 +17,76 @@ plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
 from src.utils import save_plot
-from src.config import colors, sequential_cmap, site_names
+from src.config import colors, sequential_cmap, site_names, discrete_cmap
 
-def crosshyb_heatmap(crosshyb,selected,subset = False,upper = False,ticklabels = False,ax = None):
+def crosshyb_vs_length_lineplot(plot_name,y,y_label,figsize = (2,2)):
+    results = pd.read_csv(results_path / "crosshyb_vs_length.csv")
+    results["correct_pct"] = results["correct_frac"] * 100
+    fig, ax = plt.subplots(figsize=figsize, dpi=600,layout="constrained")
+    sns.lineplot(data=results.query("length > 1"),x="length",y=y,
+                 hue = "site",palette=discrete_cmap[3])
+    ax.set_xlabel("Insert length")
+    ax.set_ylabel(y_label)
+    plt.xticks(range(2,9));
+    save_plot(fig, plot_name, plots_path)
+
+def crosshyb_heatmap(plot_name = None,site = "HEK3", metric = "free_energy",subset = None,highlight = None,
+    lower = True,vmax = -12,vmin = -25,ticklabels = False,ax = None,figsize = (2,2)):
     """Plot the crosshyb heatmap"""
-    order = crosshyb.index[leaves_list(linkage(np.log10(crosshyb), method='average'))]
-    if upper:
+    # Load crosshyb for site
+    crosshyb = pd.read_csv(results_path / "top_insert_crosshyb.csv",keep_default_na=False)
+    if metric == "probe_frac":
+        crosshyb["probe_frac"] = np.log10(crosshyb["probe_frac"])
+    crosshyb = crosshyb.query("site == @site").pivot(index = "probe",columns="target",values=metric)
+    order = crosshyb.index[leaves_list(linkage(crosshyb, method='average'))]
+    # Select inserts
+    inserts = pd.read_csv(results_path / "top_inserts.csv",keep_default_na=False)
+    if subset is not None:
+        selected = inserts.query(f"site == @site & {subset}")["insert"].tolist()
+        order = [insert for insert in order if insert in selected]
+    crosshyb = crosshyb.loc[order,order]
+    # Plot heatmap
+    if lower:
         mask = np.triu(np.ones_like(crosshyb, dtype=bool),k = 1)
     else:
-        mask = np.tril(np.ones_like(crosshyb, dtype=bool),k = -1)
-    if subset:
-        order = [insert for insert in selected if insert in order]
-        mask = mask[0:len(order),0:len(order)]
-    sns.heatmap(np.log10(crosshyb.loc[order,order]), cmap=sequential_cmap, mask=mask, square=True,vmax = 0, vmin = -5,
+        mask = np.tril(np.ones_like(crosshyb, dtype=bool),k = -1) 
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize,dpi=600,layout = "constrained")
+    cmap = sequential_cmap.reversed() if metric == "free_energy" else sequential_cmap
+    sns.heatmap(crosshyb, cmap=cmap, mask=mask, square=True,vmax=vmax,vmin=vmin,
             cbar = False,xticklabels=ticklabels,yticklabels=ticklabels,ax = ax)
-    if not subset:
+    # Highlight selected inserts
+    if highlight is not None:
+        ax.set_xlim(ax.get_xlim()[0] - 1, ax.get_xlim()[1] + 1)
+        ax.set_ylim(ax.get_ylim()[0] + 1, ax.get_ylim()[1] - 1) 
+        selected = inserts.query(f"site == @site & {highlight}")["insert"].tolist()
         for i, insert in enumerate(order):
             if insert in selected:
-                ax.add_patch(plt.Rectangle((i - .25, i - .25), 1.5, 1.5, fill=False, edgecolor=colors[2], lw=1))
-    if upper:
+                ax.add_patch(plt.Rectangle((i - .1, i - .1), 1.2, 1.2, fill=False, edgecolor=colors[2], lw=1))
+    # Format plot
+    plt.xlabel("DNA with LMs")
+    plt.ylabel("LM probes")
+    if lower:
         ax.spines['left'].set_visible(True)
         ax.spines['bottom'].set_visible(True)
     else:
         ax.spines['right'].set_visible(True)
         ax.spines['top'].set_visible(True)
-    return ax
-
-def site_crosshyb(plot_name,selected = "final_20",subset = True,ticklabels = True,figsize = (6,2.2)):
-    """Plot the crosshyb heatmap for each site"""
-    fig, axs = plt.subplots(1,3,figsize = figsize,dpi = 600,layout = "constrained")
-    inserts = pd.read_csv(results_path / "top_inserts.tsv",sep="\t")
-    for i,site in enumerate(site_names.keys()):
-        crosshyb = pd.read_csv(results_path / f"{site}_crosshyb.tsv",sep="\t",index_col=0)
-        selected_inserts = inserts.query(f"site == @site & {selected}")["insert"].values
-        crosshyb_heatmap(crosshyb,selected_inserts,subset = subset,ax = axs[i],upper = True,ticklabels = ticklabels)
-        axs[i].set_title(site_names[site])
-        if i == 0:
-            axs[i].set_ylabel("5mer probes")
-        axs[i].set_xlabel("5mer probes")
-    save_plot(fig,plot_name,plots_path)
-
-def selected_crosshyb(plot_name,site = "HEK3",selected = "final_20",figsize = (6,2.2)):
-    """Plot selected crosshyb heatmap for each site"""
-    inserts = pd.read_csv(results_path / "top_inserts.tsv",sep="\t")
-    crosshyb = pd.read_csv(results_path / f"{site}_crosshyb.tsv",sep="\t",index_col=0)
-    selected_inserts = inserts.query(f"site == @site & {selected}")["insert"].values
-    fig, ax = plt.subplots(1,1,figsize = figsize,dpi = 600,layout = "constrained")
-    crosshyb_heatmap(crosshyb,selected_inserts,ax = ax,subset=True)
-    save_plot(fig,plot_name,plots_path)
+    if plot_name is not None:
+        save_plot(fig, plot_name, plots_path)
+    else:
+        return ax
 
 if __name__ == "__main__":
-    site_crosshyb("final_8_crosshyb_heatmap",selected = "final_8",ticklabels = True)
-    site_crosshyb("final_20_highlighted_crosshyb_heatmap",selected = "final_20",ticklabels = False,subset = False)
-    site_crosshyb("final_8_highlighted_crosshyb_heatmap",selected = "final_8",ticklabels = False,subset = False)
-    for site in site_names.keys():
-        selected_crosshyb(f"final_20_crosshyb_heatmap_{site}",site,selected = "final_20")
-        selected_crosshyb(f"final_8_crosshyb_heatmap_{site}",site,selected = "final_8")
+    crosshyb_vs_length_lineplot("crosshyb_energy_diff_vs_length","free_energy_diff","Correct - incorrect ($\Delta G$)")
+    crosshyb_vs_length_lineplot("crosshyb_correct_frac_vs_length","correct_pct","Correct probe bound (%)")
+    for metric, name in [("free_energy","energy"),("probe_frac","frac")]:
+        vmax = -12 if metric == "free_energy" else 0
+        vmin = -25 if metric == "free_energy" else -7
+        for site in site_names.keys():
+            crosshyb_heatmap(f"{site}_crosshyb_{name}",site,metric=metric,highlight="final_20",
+                            lower=True,figsize = (2,2),vmax = vmax,vmin = vmin)
+            crosshyb_heatmap(f"{site}_20_crosshyb_{name}",site,metric=metric,subset="final_20",
+                            lower=False,figsize = (2,2),vmax = vmax,vmin = vmin)
+            crosshyb_heatmap(f"{site}_8_crosshyb_{name}",site,metric=metric,subset="final_8",
+                            lower=True,figsize = (2,2),vmax = vmax,vmin = vmin,ticklabels=True)
