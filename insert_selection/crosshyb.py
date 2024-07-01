@@ -53,6 +53,7 @@ def simulate_crosshyb(inserts, seq, unedited_seq, celsius = 43, sodium = 0.3):
     energies = {c.name : info.free_energy for c, info in tube_result.complexes.items()}
     results["concentration"] = results["complex"].map(concs) / 1e-10
     results["free_energy"] = results["complex"].map(energies)
+    results["free_energy_diff"] = results["free_energy"] - results.groupby("target")["free_energy"].transform("min")
     results["probe_frac"] = results.groupby("target")["concentration"].transform(lambda x: x / x.sum())
     return results
 
@@ -91,11 +92,11 @@ def crosshyb_vs_length():
     results.to_csv(results_path / "crosshyb_vs_length.csv",index=False)
 
 def top_insert_crosshyb():
-    inserts = pd.read_csv(results_path / "top_inserts.tsv",sep="\t")
+    inserts = pd.read_csv(results_path / "top_inserts.csv",keep_default_na=False)
     inserts = inserts[inserts["within_10%"]].copy()
     results = []
     for site in site_names.keys():
-        crosshyb = simulate_crosshyb(inserts.query("site == @site")["insert"].tolist() + ["None"], 
+        crosshyb = simulate_crosshyb(inserts.query("site == @site")["insert"].tolist(), 
                                     site_seqs[site], unedited_seqs[site])
         crosshyb["site"] = site
         results.append(crosshyb) 
@@ -104,7 +105,7 @@ def top_insert_crosshyb():
 
 # Get cross hybridization matrix for each site
 if __name__ == "__main__":
-    print("Simulating cross hybridization for different insert lengths")
-    crosshyb_vs_length()
+    #print("Simulating cross hybridization for different insert lengths")
+    #crosshyb_vs_length()
     print("Simulating cross hybridization for top inserts")
     top_insert_crosshyb()
