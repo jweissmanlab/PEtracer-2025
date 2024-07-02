@@ -7,10 +7,31 @@ __pycache__/
 *.pdf
 *.png
 *.svg
+*.ai
 *.json
 *.csv
 *.tsv
 *.pkl
+*.bam
+*.bai
+*.fastq
+*.h5ad
+*.h5td
+*.h5
+*.html
+*.out
+
+# development files
+dev.ipynb
+
+# Extra directories
+LWK_pegArray_competition_date
+Fig2
+Fig3
+FigSI
+
+# large refernce files
+refernce/cellranger/
 
 .DS_Store
 

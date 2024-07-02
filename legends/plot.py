@@ -26,6 +26,7 @@ def plot_cbar(cmap, ticks, label, name, ticklabels=None):
 if __name__ == "__main__":
     plot_legend(edit_legend, "edit_legend")
     plot_cbar(sequential_cmap, [.3,.4,.5,.6,.7], "Robinson-Foulds distance", "rf_cbar")
-    plot_cbar(sequential_cmap, [0,-2,-4,-6], "Probe molecule fraction", "crosshyb_cbar", 
-              ticklabels= ["1","$10^{-2}$","$10^{-4}$","$10^{-6}$"])
+    plot_cbar(sequential_cmap, [0,-1,-2,-3,-4,-5], "Probe molecule fraction", "crosshyb_frac_cbar", 
+              ticklabels= ["1","$10^{-1}$","$10^{-2}$","$10^{-3}$","$10^{-4}$","$10^{-5}$"])
+    plot_cbar(sequential_cmap.reversed(), [0,2,4,6,8,10], "$\Delta G$ - on-target $\Delta G$", "crosshyb_free_energy_cbar")
 
