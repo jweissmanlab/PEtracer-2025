@@ -9,6 +9,8 @@ import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
 import matplotlib.colorbar as mcolorbar
 import matplotlib.patches as mpatches
+import treedata as td
+import pycea
 from pathlib import Path
 import cassiopeia as cas
 import pickle
@@ -26,6 +28,12 @@ plt.style.use(base_path / 'plot.mplstyle')
 # Load source
 from src.config import colors,discrete_cmap,threads,site_names,edit_ids,edit_names
 from src.utils import save_plot
+from src.tree_utils import plot_grouped_characters
+
+# Define constants
+metric_names = {"fmi":"Clone Barcode FMI"}
+param_names = {"characters":"Number of edit sites",
+               "detection_rate":"Detection rate (%)"}
 
 def site_edit_rates(plot_name):
     edit_counts = pd.read_csv(results_path / "tree_edit_counts.csv")
@@ -45,107 +53,90 @@ def site_edit_rates(plot_name):
 
     save_plot(fig, plot_name, plots_path)
 
-def fmi_violin(plot_name):
-
-    stats = pd.read_csv(results_path / "tree_stats.csv")
-    stats_shuffled = pd.read_csv(results_path / "tree_stats_shuffled.csv")
-    stats_with_shuffled = pd.concat([stats,stats_shuffled])
-
-    fig, ax = plt.subplots(figsize=(1.5, 1.8),dpi = 300)
-
-    sns.violinplot(data=stats_with_shuffled.query("solver == 'nj'"), x="shuffled", y="fmi",inner = None, 
+def clone_fmi_violin(plot_name,figsize = (2,2)):
+    clone_fmi = pd.read_csv(results_path / "clone_fmi.csv")
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    sns.violinplot(data=clone_fmi.query("solver == 'upgma'"), x="permute", y="fmi",inner = None, 
                 palette=discrete_cmap[2],saturation=1,linewidth =.5,bw = 1)
-    sns.swarmplot(data=stats_with_shuffled.query("solver == 'nj'"), x="shuffled", y="fmi", color="black",size=2)
-    plt.ylabel("Average barcode FMI")
-    plt.xlabel("")
-    plt.ylim(0,1.05)
-    plt.xticks([0,1],["Clones","Permuted\nbarcodes"])
+    sns.swarmplot(data=clone_fmi.query("solver == 'upgma'"), x="permute", y="fmi", color="black",size=2)
+    plt.ylabel(metric_names["fmi"]);
+    plt.xlabel("");
+    plt.ylim(0,1.05);
+    plt.yticks([0,0.5,1]);
+    plt.xticks([0,1],["True\nbarcodes","Permuted\nbarcodes"]);
+    save_plot(fig, plot_name, plots_path)
+
+def clone_fmi_lineplot(plot_name,x,figsize = (2,2)):
+    fmi = pd.read_csv(results_path / f"fmi_vs_{x}.csv")
+    if x == "detection_rate":
+        fmi[x] = fmi[x]*100
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
+    sns.lineplot(data=fmi,x=x,y="fmi",ax=ax,hue = "clone",palette = discrete_cmap[6],legend = False,linewidth = 1.5)
+    plt.ylim(0,1);
+    ax.set_xlabel(param_names[x])
+    ax.set_ylabel(metric_names["fmi"])
 
     save_plot(fig, plot_name, plots_path)
 
-def nj_vs_upgma_fmi(plot_name):
+def nj_vs_upgma_fmi_scatterplot(plot_name,figsize = (2.5,2.5)):
 
-    stats = pd.read_csv(results_path / "tree_stats.csv")
-    stats_long = stats.melt(id_vars = ["clone","solver","shuffled"],value_vars = ["blast_fmi","puro_fmi"])
-    stats_long = stats_long.pivot_table(index = ["clone","variable"],columns = ["solver"],values = "value").reset_index()
-    stats_long["Barcode"] = stats_long["variable"].map({"blast_fmi":"Blast","puro_fmi":"Puro"})
+    clone_fmi = pd.read_csv(results_path / "clone_fmi.csv")
+    fmi_long = clone_fmi.query("~permute").melt(id_vars = ["clone","solver"],value_vars = ["blast_fmi","puro_fmi"])
+    fmi_long = fmi_long.pivot_table(index = ["clone","variable"],columns = ["solver"],values = "value").reset_index()
+    fmi_long["Barcode"] = fmi_long["variable"].map({"blast_fmi":"Blast","puro_fmi":"Puro"})
 
-    fig, ax = plt.subplots(figsize=(2.5, 2.5),dpi = 300)
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
 
-    sns.scatterplot(data = stats_long.rename(columns={"clone":"Clone"}),x = "nj",y = "upgma",
-                    hue = "Clone",style = "Barcode",s = 60,palette = discrete_cmap[6]) 
+    sns.scatterplot(data = fmi_long,x = "nj",y = "upgma",markers = ["o","s"],legend=False,
+                    hue = "clone",style = "Barcode",s = 40,palette = discrete_cmap[6]) 
     plt.plot([.7,1],[.7,1],color = "black",linestyle = "--",zorder = 0)
-    plt.xlabel("Neighbor Joining barcode FMI")
+    plt.xlabel("NJ barcode FMI")
     plt.ylabel("UPGMA barcode FMI")
 
     save_plot(fig, plot_name, plots_path)
 
-def tree_with_clades(clone,solver,figsize,scale,title,plot_name):
-
-    with open(results_path / "trees.pkl", "rb") as f:
-        trees = pickle.load(f)
-    tree = trees[solver][clone]
-    clades = pd.read_csv(results_path / "tree_clades.csv",dtype={"clade":str})
-    tree_clades = clades.query("solver == 'nj' & clone == @clone").copy()
-
-    cmap = discrete_cmap[19].copy()
-    cmap.insert(0,"white")
-    cmap = mcolors.ListedColormap(cmap)
-    tree_clades["vmap"] = tree_clades["clade"].astype(int) % 18 + 1
-    tree_clades["color"] = tree_clades["vmap"].map(cmap)
-    vmap = tree_clades.set_index("clade")["vmap"].to_dict()
-    vmap.update({"None":0})
-    nodes_sizes = {node:20 for node in tree_clades.query("n >= 3").max_node}
-    clade_colors = tree_clades.set_index("max_node")["color"].to_dict()
-
-    if scale:
-        n_cells = len(tree.cell_meta)
+def polar_tree_with_clades(plot_name,clone,barcode,title = None,scale = False,figsize = (5,5)):
+    tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
+    clade_palette = {str(clade):color for clade, color in enumerate(colors[1:21]*100)}
+    if scale is True:
+        n_cells = len(tdata.obs)
         figsize = (figsize[0]*np.sqrt(n_cells/5000),figsize[1]*np.sqrt(n_cells/5000))
-
-    fig, ax = plt.subplots(figsize=figsize,dpi = 300)
-
-    cas.pl.plot_matplotlib(tree, meta_data=["puroGrp","blastGrp"],categorical_cmap = cmap,
-                            value_mapping = vmap,ax=ax,clade_colors=clade_colors,node_sizes=nodes_sizes,branch_kwargs={"linewidth":.5,"c":"gray"},leaf_kwargs={"s":0})
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=figsize,dpi = 600, layout = "constrained")
+    pycea.pl.branches(tdata, depth_key = "time", polar = True,ax = ax,
+                      color = f"{barcode}_clade",palette = clade_palette,linewidth=.3)
+    if barcode in ["puro","combined"]:
+        pycea.pl.nodes(tdata,color = "puro_lca",ax = ax,palette = clade_palette,style = "s",size = 15)
+        pycea.pl.annotation(tdata,ax = ax,keys = ["puro"],palette=clade_palette)
+    if barcode in ["blast","combined"]:
+        pycea.pl.nodes(tdata,color = "blast_lca",ax = ax,palette = clade_palette,size = 10)
+        pycea.pl.annotation(tdata,keys = ["blast"],gap = .02, palette = clade_palette)
     if title:
-        plt.title(title, y = .95)
+        ax.set_title(title) 
     save_plot(fig,plot_name,plots_path,transparent=True)
 
-def tree_with_edits(clone,solver,figsize,plot_name):
-
-    with open(results_path / "trees.pkl", "rb") as f:
-        trees = pickle.load(f)
-    allele_table = pd.read_csv(data_path / "barcoded_4T1_alleles.tsv",sep="\t",
-                            keep_default_na=False,index_col=0)
-    
-    tree = trees[solver][clone]
-    tree_allele_table = allele_table[allele_table.cellBC.isin(tree.cell_meta.cellBC)].copy()
-    for site in list(site_names.keys()):
-        tree_allele_table[site] = tree_allele_table[site].map(edit_ids[site]).fillna(9).astype(int).astype(str)
-    tree_allele_table = tree_allele_table.rename(columns={"RNF2":"r1","HEK3":"r2","EMX1":"r3","intID":"intBC"})
-    edit_colors = [(.8, .8, .8)] + discrete_cmap[8].copy() + [(.3, .3, .3)]
-    edit_colors_df = pd.DataFrame({"color":[mcolors.rgb_to_hsv(i) for i in edit_colors]},
-            index=[str(i) for i in range(0, 10)])
-
-    fig, ax = plt.subplots(figsize=figsize,dpi = 300,layout="constrained")
-
-    cas.pl.plot_matplotlib(tree, orient="right",allele_table=tree_allele_table,indel_colors=edit_colors_df,
-        ax = ax,leaf_kwargs={"s":0},branch_kwargs={"linewidth":.5})
-
-    edit_labels = [name for name in edit_names["EMX1"].values()] + ["Other"]
-    legend_handles = [mpatches.Rectangle((0, 0), 1, 1, color=color, label=label)
-                    for color, label in zip(edit_colors,edit_labels)]
-    fig.legend(handles=legend_handles,loc='lower left',bbox_to_anchor=(.94,.04),ncol=1)
+def tree_with_characters(plot_name,clone,figsize = (5,5)):
+    tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    pycea.pl.branches(tdata, depth_key = "time",ax = ax,linewidth=.3)
+    plot_grouped_characters(tdata,ax = ax)
     save_plot(fig,plot_name,plots_path)
 
 # Generate plots
 if __name__ == "__main__":
-    site_edit_rates("site_edit_rates")
-    fmi_violin("fmi_violin")
-    #nj_vs_upgma_fmi("nj_vs_upgma_fmi")
-    #params = [(clone, "nj", (6,6), True, f"Clone {clone}",
-    #           f"clone_{clone}_tree") for clone in range(1,7)]
-    #with mp.Pool(processes=threads) as pool:
-    #    results = pool.starmap(tree_with_clades, params)
-    #tree_with_clades(5,"nj",(6.5,6.5),False,None,"example_tree")
-    #tree_with_edits(5,"nj",(3.2,2.4),"example_tree_with_edits")
-
+    #site_edit_rates("site_edit_rates")
+    #fmi_violin("fmi_violin")
+    # FMI
+    clone_fmi_violin("clone_fmi_violin",figsize = (2,2))
+    nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2,2))
+    clone_fmi_lineplot("clone_fmi_vs_characters_lineplot",x = "characters",figsize = (2,2))
+    clone_fmi_lineplot("clone_fmi_vs_detection_lineplot",x = "detection_rate",figsize = (2,2))
+    # Clone trees
+    #for clone in range(1,7):
+    #    polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
+    #        title = f"Clone {clone}",scale = True,figsize = (3.7,3.7))
+    # Example clone
+    example = 4
+    #polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
+    #polar_tree_with_clades(f"clone_{example}_blast_clades",example,"blast",figsize = (4,4))
+    #polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
+    #tree_with_characters(f"clone_{example}_with_characters",example,figsize = (3,2))
