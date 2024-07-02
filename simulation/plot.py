@@ -25,8 +25,8 @@ solver_names = {"upgma":"UPGMA",
             "nj":"NJ",
             "greedy":"Greedy"}
 param_names = {"size":"Number of cells",
-          "edit_frac":"Sites edited (%)",
-          "characters":"Number of sites",
+          "edit_frac":"Edit sites with LM (%)",
+          "characters":"Number of edit sites",
           "detection_rate":"Detection rate (%)",
           "states":"Number of LMs",
           "entropy":"LM distribution ($H_{norm}$)",}

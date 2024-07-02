@@ -230,7 +230,7 @@ def parameter_sweep_simulation(threads = 30):
         "states":[8],
         "indel_dist":[True,False],
         "iteration":range(10)}
-    param_ranges = {"size":[500,1000,2000,5000,10000],
+    param_ranges = {"size":[300,1000,3000,10000,30000,100000],
         "edit_frac":[0.3,0.5,0.7,0.9],
         "characters":[20,40,60,80,100],
         "missing_rate":[0,.1,.2,.3,.4,.5]}
@@ -248,8 +248,7 @@ def parameter_sweep_simulation(threads = 30):
         results = list(tqdm(pool.imap_unordered(eval_tree, parallel_list), 
                                 total=len(parallel_list)))
         results = pd.concat(results)
-    results.to_csv(results_path / "parameter_sweep_simulation.tsv",
-                   index = False,sep = "\t")
+    results.to_csv(results_path / "parameter_sweep_simulation.csv",index = False)
 
 # Run simulations
 if __name__ == "__main__":
@@ -258,6 +257,6 @@ if __name__ == "__main__":
     print("Simulating trees varying the number of states and the edit fraction")
     #states_vs_frac_simulation(threads = threads)
     print("Simulating trees sweeping the other parameters")
-    #param_sweep_simulation(threads = threads)
+    parameter_sweep_simulation(threads = threads)
     print("Simulating minimum number of characters for large trees")
-    min_characters_simulation()
+    #min_characters_simulation()
