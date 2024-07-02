@@ -8,6 +8,7 @@ log_path = None
 
 # Names
 preedited_clone_names = {0:"Normal",1:"Clone 1",2:"Clone 2",3:"Clone 3",4:"Clone 4"}
+site_ids = {"RNF2":1,"HEK3":2,"EMX1":3}
 site_names = {"RNF2":"Edit site 1", "HEK3":"Edit site 2", "EMX1":"Edit site 3"}
 edit_ids = {'EMX1': {'None': 0,
   'GGACA': 1,
@@ -55,7 +56,7 @@ img_paths = {
 }
 
 # Default colors
-colors = ["black", "#1874CD", "#CD2626","#FFE600","#009E73","#8E0496","#E69F00"]
+colors = ['black','#1874CD','#CD2626','#FFE600','#009E73','#8E0496','#E69F00','#83A4FF','#DB65D2','#75F6FC','#7BE561','#FF7D7D','#7C0EDD','#262C6B','#D34818','#20C4AC','#A983F2','#FAC0FF','#7F0303','#845C44','#343434']
 
 # Sequential colormap
 sequential_colors = [(1, 1, 1)] + [plt.cm.GnBu(i / (256 - 1)) for i in range(256)]
@@ -84,3 +85,13 @@ discrete_colors = {
 19:["#FF7D7D", "#CD2626", "#7F0303", "#D34818", "#E69F00", "#845C44", "#FFE600", "#7BE561", "#009E73", "#20C4AC", "#75F6FC", "#262C6B", "#83A4FF", "#1874CD", "#A983F2", "#7C0EDD", "#8E0496", "#DB65D2", "#FAC0FF"],
 20:["#FF7D7D", "#CD2626", "#7F0303", "#D34818", "#E69F00", "#845C44", "#FFE600", "#7BE561", "#009E73", "#20C4AC", "#75F6FC", "#262C6B", "#83A4FF", "#1874CD", "#A983F2", "#7C0EDD", "#8E0496", "#DB65D2", "#FAC0FF", "#343434"]}
 discrete_cmap = {k:sns.color_palette(v) for k,v in discrete_colors.items()}
+
+# Edit colors
+edit_palette = {"-1":"white","0":"lightgray"}
+edit_palette.update({str(i):discrete_cmap[8][i-1] for i in range(1,9)})
+edit_palette.update({"9":"#505050"})
+edit_cmap = mcolors.ListedColormap(list(edit_palette.values())[:-1])
+full_edit_cmap = mcolors.ListedColormap(edit_palette.values())
+
+# Preedited clone colors
+preedited_clone_colors = {"0":"lightgray","1":"#CD2626","2":"#FFE600","3":"#009E73","4":"#1874CD"}

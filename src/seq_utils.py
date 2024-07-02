@@ -1,0 +1,53 @@
+import pandas as pd
+import re
+
+def insertion_from_alignment(sequence, cigar, pos, ref_begin = 0, window=2):
+    """Extract insertion sequence from a read alignment."""
+    pos = pos - ref_begin
+    ref_pos = 0 
+    seq_pos = 0
+    insertions = ""
+    for op in re.findall(r'(\d+)([MIDNSHP])', cigar):
+        length, operation = int(op[0]), op[1]
+        if operation == 'M':
+            seq_pos += length
+            ref_pos += length
+        elif operation == "S":
+            seq_pos += length
+        elif operation == 'D':
+            ref_pos += length
+        elif operation == 'I':
+            if (pos - window <= ref_pos) and (ref_pos <= pos + window):
+                indel_pos = seq_pos - ref_pos + pos
+                insertions += sequence[indel_pos:indel_pos + length]
+            seq_pos += length
+        if ref_pos > pos + window:
+            break
+    if ref_pos < pos:
+        return pd.NA
+    elif insertions == "":
+        return "None"
+    return insertions
+
+def barcode_from_alignment(sequence, cigar, start, stop, ref_begin = 0):
+    """Extract barcode sequence from a read alignment."""
+    aligned_sequence = ""
+    start = start - ref_begin
+    stop = stop - ref_begin
+    seq_pos = 0
+    ref_pos = 0
+    for op in re.findall(r'(\d+)([MIDNSHP=X])', cigar):
+        length, operation = int(op[0]), op[1]
+        if operation in ["M","S"]:
+            if ref_pos + length > start:
+                sub_start = max(0, start - ref_pos)
+                sub_end = min(length, stop - ref_pos)
+                aligned_sequence += sequence[seq_pos + sub_start:seq_pos + sub_end]
+            seq_pos += length
+            if operation == "M":
+                ref_pos += length
+        elif operation == "D":
+            ref_pos += length
+        elif operation == "I":
+            seq_pos += length
+    return aligned_sequence
