@@ -15,6 +15,7 @@ __pycache__/
 *.bam
 *.bai
 *.fastq
+*.fastq.gz
 *.h5ad
 *.h5td
 *.h5
@@ -31,7 +32,7 @@ Fig3
 FigSI
 
 # large refernce files
-refernce/cellranger/
+reference/cellranger/
 
 .DS_Store
 
