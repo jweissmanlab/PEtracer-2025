@@ -18,16 +18,16 @@ def edit_frac(characters):
     return np.float64(np.apply_over_axes(np.sum,characters != 0,(0,1)).item()/
                       np.apply_over_axes(np.sum,~np.isnan(characters),(0,1)).item())
 
-def alleles_to_characters(alleles,edit_ids = edit_ids,cells = "cellBC",ints = "intID",min_prob = None,other_id = 9):
+def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id = 9,order = None):
     characters = alleles.copy()
     # Map alleles to characters
     for site, mapping in edit_ids.items():
         characters[site] = characters[site].map(mapping).fillna(other_id).astype(int)
         if min_prob is not None:
             characters.loc[characters[f"{site}_prob"] < min_prob,site] = -1
-    characters = pd.melt(characters[[cells,ints] + list(edit_ids.keys())],
-                               id_vars = [cells,ints],var_name = "site",value_name = "allele")
-    characters = characters.pivot_table(index = cells,columns = [ints,"site"],values = "allele").fillna(-1).astype(int)
+    characters = pd.melt(characters[["cellBC","intID"] + list(edit_ids.keys())],
+                               id_vars = ["cellBC","intID"],var_name = "site",value_name = "allele")
+    characters = characters.pivot_table(index = "cellBC",columns = ["intID","site"],values = "allele").fillna(-1).astype(int)
     # sort by max allele fraction
     def max_fraction(int_id):
         int_data = characters.xs(int_id, level=0, axis=1)
@@ -36,8 +36,9 @@ def alleles_to_characters(alleles,edit_ids = edit_ids,cells = "cellBC",ints = "i
         valid_counts = counts.loc[lambda x: x.index > 0]  # Exclude -1 and 0
         max_fraction_value = (valid_counts / total_counts).max().max()
         return max_fraction_value
-    sorted_ints = sorted(characters.columns.levels[0], key=max_fraction, reverse=True)
-    characters = characters.reindex(sorted_ints, level=0, axis=1)
+    if order is None:
+        order = sorted(characters.columns.levels[0], key=max_fraction, reverse=True)
+    characters = characters.reindex(order, level=0, axis=1)
     # Reindex
     characters.columns = ['{}-{}'.format(intID, site) for intID, site in characters.columns]
     characters.index = characters.index.astype(str)

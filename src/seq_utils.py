@@ -51,3 +51,25 @@ def barcode_from_alignment(sequence, cigar, start, stop, ref_begin = 0):
         elif operation == "I":
             seq_pos += length
     return aligned_sequence
+
+def correct_to_whitelist(seqs, whitelist, max_dist = 2):
+    import Levenshtein
+
+    unique_seqs = list(dict.fromkeys(seqs))
+    corrections = {}
+
+    for seq in unique_seqs:
+        closest_match = None
+        min_distance = float('inf')
+
+        for white_seq in whitelist:
+            distance = Levenshtein.distance(seq, white_seq)
+            if distance <= max_dist and distance < min_distance:
+                closest_match = white_seq
+                min_distance = distance
+
+        corrections[seq] = closest_match if closest_match is not None else seq
+
+    corrected_seqs = [corrections[str] for str in seqs]
+
+    return corrected_seqs
