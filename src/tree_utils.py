@@ -18,16 +18,18 @@ def edit_frac(characters):
     return np.float64(np.apply_over_axes(np.sum,characters != 0,(0,1)).item()/
                       np.apply_over_axes(np.sum,~np.isnan(characters),(0,1)).item())
 
-def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id = 9,order = None):
+def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id = 9,order = None,index = "cellBC"):
     characters = alleles.copy()
+    if isinstance(index,str):
+        index = [index]
     # Map alleles to characters
     for site, mapping in edit_ids.items():
         characters[site] = characters[site].map(mapping).fillna(other_id).astype(int)
-        if min_prob is not None:
+        if min_prob is not None and f"{site}_prob" in characters.columns:
             characters.loc[characters[f"{site}_prob"] < min_prob,site] = -1
-    characters = pd.melt(characters[["cellBC","intID"] + list(edit_ids.keys())],
-                               id_vars = ["cellBC","intID"],var_name = "site",value_name = "allele")
-    characters = characters.pivot_table(index = "cellBC",columns = ["intID","site"],values = "allele").fillna(-1).astype(int)
+    characters = pd.melt(characters[index + ["intID"] + list(edit_ids.keys())],
+                               id_vars = index + ["intID"],var_name = "site",value_name = "allele")
+    characters = characters.pivot_table(index = index,columns = ["intID","site"],values = "allele").fillna(-1).astype(int)
     # sort by max allele fraction
     def max_fraction(int_id):
         int_data = characters.xs(int_id, level=0, axis=1)
@@ -41,7 +43,6 @@ def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id =
     characters = characters.reindex(order, level=0, axis=1)
     # Reindex
     characters.columns = ['{}-{}'.format(intID, site) for intID, site in characters.columns]
-    characters.index = characters.index.astype(str)
     return characters
 
 def reconstruct_ancestral_characters(tdata,tree = "tree",key = "characters",copy = True):
@@ -118,12 +119,14 @@ def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tre
         collapse_mutationless_edges(tdata,copy = False)
     return tdata
 
-def plot_grouped_characters(tdata,ax = None,width = .1):
+def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = 1):
     if ax is None:
         ax = plt.gca()
     tdata.obs = tdata.obs.merge(tdata.obsm["characters"].astype(str),left_index=True,right_index=True)
     for i in range(0,tdata.obsm["characters"].shape[1],3):
-            integration = tdata.obsm["characters"].columns[i].split("-")[0]
-            pycea.pl.annotation(tdata,keys=[f"{integration}-EMX1",f"{integration}-HEK3",f"{integration}-RNF2"],border_width=.5,
-                                label = [],width=width,gap = width/2,palette = edit_palette,ax = ax)
+        integration = tdata.obsm["characters"].columns[i].split("-")[0]
+        label = integration.replace("intID","") if label else False
+        gap = offset if i == 0 else width/2
+        pycea.pl.annotation(tdata,keys=[f"{integration}-EMX1",f"{integration}-HEK3",f"{integration}-RNF2"],border_width=.5,
+                            label = label,width=width,gap = gap,palette = edit_palette,ax = ax)
     tdata.obs = tdata.obs.drop(columns = tdata.obsm["characters"].columns)
