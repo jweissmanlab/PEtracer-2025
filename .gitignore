@@ -21,6 +21,7 @@ __pycache__/
 *.h5
 *.html
 *.out
+*.npy
 
 # development files
 dev.ipynb
