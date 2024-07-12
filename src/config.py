@@ -39,21 +39,27 @@ edit_ids = {'EMX1': {'None': 0,
   'ATTTA': 8}}
 edit_names = {}
 for site in edit_ids:
-    edit_names[site] = {"None":"Unedited"}
-    edit_names[site].update({edit:f"LM {edit_ids[site][edit]}" for edit in edit_ids[site] if edit != "None"})
+    edit_names[site] = {edit:f"LM {edit_ids[site][edit]}" for edit in edit_ids[site] if edit != "None"}
+    edit_names[site].update({"None":"Unedited"})
 
 # MERFISH parameters
-min_spot_intensity = 800
+min_edit_prob = 0.5
 default_decoder = "v4_edit_decoder.pkl"
 img_paths = {
-    "preedited_invitro": {
+    "preedited_merfish_invitro": {
         "path": "/lab/weissman_imaging/puzheng/PE_LT/20240426-fullyEdited4T1_ingel_IntBCv2_combinedEditv3/",
         "analysis": "/lab/weissman_imaging/wcolgan/MERFISH_Data/20240426-fullyEdited4T1_ingel_IntBCv2_combinedEditv3/Analysis/",
         "file_pattern": "{series}/Conv_zscan_{fov:02d}.dax"},
-      "preedited_invivo": {
+    "preedited_merfish_invivo": {
         "path": "/lab/weissman_imaging/puzheng/PE_LT/20240424-F242dpec_T7afterMerfish/",
+        "analysis": "/lab/weissman_imaging/wcolgan/20240424-F242dpec_T7afterMerfish/Analysis/",
         "file_pattern": "{series}/Conv_zscan_{fov:03d}.dax"},
+    "preedited_merfish_zombie": {
+        "path": "/lab/weissman_imaging/puzheng/PE_LT/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/",
+        "analysis": "/lab/weissman_imaging/wcolgan/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/Analysis/",
+        "file_pattern": "{series}/Conv_zscan_{fov:02d}.dax"},
 }
+fov_size = 246.528
 
 # Default colors
 colors = ['black','#1874CD','#CD2626','#FFE600','#009E73','#8E0496','#E69F00','#83A4FF','#DB65D2','#75F6FC','#7BE561','#FF7D7D','#7C0EDD','#262C6B','#D34818','#20C4AC','#A983F2','#FAC0FF','#7F0303','#845C44','#343434']
@@ -87,11 +93,11 @@ discrete_colors = {
 discrete_cmap = {k:sns.color_palette(v) for k,v in discrete_colors.items()}
 
 # Edit colors
-edit_palette = {"-1":"white","0":"lightgray"}
+edit_palette = {"-1":"white"}
 edit_palette.update({str(i):discrete_cmap[8][i-1] for i in range(1,9)})
-edit_palette.update({"9":"#505050"})
-edit_cmap = mcolors.ListedColormap(list(edit_palette.values())[:-1])
-full_edit_cmap = mcolors.ListedColormap(edit_palette.values())
+edit_palette.update({"0":"lightgray","9":"#505050"})
+edit_cmap = mcolors.ListedColormap(["white","lightgray"] + list(discrete_cmap[8]))
+full_edit_cmap = mcolors.ListedColormap(["white","lightgray"] + list(discrete_cmap[8]) + ["#505050"])
 
 # Preedited clone colors
 preedited_clone_colors = {"0":"lightgray","1":"#CD2626","2":"#FFE600","3":"#009E73","4":"#1874CD"}

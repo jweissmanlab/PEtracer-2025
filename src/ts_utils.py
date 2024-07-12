@@ -55,7 +55,7 @@ def pairwise_combs(clones):
     keys = list(clones.keys())
     combs = list(itertools.combinations(keys, 2))
     key_combs= [f"{i},{j}" for i, j in combs]
-    list_combs = [sorted(set(clones[i] + clones[j])) for i, j in combs]
+    list_combs = [sorted(set(list(clones[i]) + list(clones[j]))) for i, j in combs]
     return dict(zip(key_combs, list_combs))
 
 def plot_whitelist_alleles(alleles, top_n = 100, plot_title = None):

@@ -5,6 +5,11 @@ from reportlab.lib.utils import ImageReader
 import re
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib.collections as mcoll
+import matplotlib.patches as mpatches
+import matplotlib.image as mimage
+import matplotlib.spines as mspines
+import matplotlib.lines as mlines
 
 def convert_svg_text(svg_path):
     with open(svg_path, 'r') as f:
@@ -25,12 +30,19 @@ def convert_svg_text(svg_path):
                     line = line.replace('style=', f'font-family="{font_family}" font-size="{font_size}" style=')
             file.write(line)
 
-def save_plot(fig, plot_name, plots_path='.',transparent=False,svg = True):
+def save_plot(fig, plot_name, plots_path='.',transparent=False,svg = True,rasterize = False):
     plt.rcParams['svg.fonttype'] = 'none'
     plots_path = Path(plots_path)
     fig.savefig(plots_path / f"{plot_name}.png", bbox_inches='tight', pad_inches=0, transparent=transparent,dpi = 600)
     if svg:
-        fig.savefig(plots_path / f"{plot_name}.svg", bbox_inches='tight', pad_inches=0, transparent=transparent)
+        if rasterize:
+            for ax in fig.axes:
+                for artist in ax.get_children():
+                    if isinstance(artist, (mcoll.PathCollection, mcoll.PolyCollection, mcoll.QuadMesh, 
+                                           mcoll.PatchCollection, mcoll.LineCollection, mpatches.Patch, mpatches.Rectangle,
+                                           mimage.AxesImage)):
+                        artist.set_rasterized(True)
+        fig.savefig(plots_path / f"{plot_name}.svg", bbox_inches='tight', pad_inches=0, transparent=transparent,dpi = 600)
         convert_svg_text(plots_path / f"{plot_name}.svg")
 
 

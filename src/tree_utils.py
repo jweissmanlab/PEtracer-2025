@@ -127,6 +127,7 @@ def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = 1)
         integration = tdata.obsm["characters"].columns[i].split("-")[0]
         label = integration.replace("intID","") if label else False
         gap = offset if i == 0 else width/2
-        pycea.pl.annotation(tdata,keys=[f"{integration}-EMX1",f"{integration}-HEK3",f"{integration}-RNF2"],border_width=.5,
+        pycea.pl.annotation(tdata,keys=[f"{integration}-RNF2",f"{integration}-HEK3",f"{integration}-EMX1"],border_width=.5,
                             label = label,width=width,gap = gap,palette = edit_palette,ax = ax)
     tdata.obs = tdata.obs.drop(columns = tdata.obsm["characters"].columns)
+    ax.tick_params(axis='x', pad=0)
