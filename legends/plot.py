@@ -8,13 +8,13 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 from src.utils import save_plot
-from src.legends import edit_legend, add_cbar
+from src.legends import edit_legend, add_cbar, barcode_legend, barcoding_clone_legend
 from src.config import sequential_cmap
 
-def plot_legend(handels, name):
+def plot_legend(handels, name, title= None):
     fig, ax = plt.subplots(figsize=(1, 1))
     ax.plot([], [])
-    fig.legend(handles=handels,loc='upper right',bbox_to_anchor=(.995,1),ncol=1)
+    fig.legend(handles=handels,loc='upper right',bbox_to_anchor=(.995,1),ncol=1,title=title)
     ax.axis('off')
     save_plot(fig, name, plots_path)
 
@@ -29,4 +29,6 @@ if __name__ == "__main__":
     plot_cbar(sequential_cmap, [0,-1,-2,-3,-4,-5], "Probe molecule fraction", "crosshyb_frac_cbar", 
               ticklabels= ["1","$10^{-1}$","$10^{-2}$","$10^{-3}$","$10^{-4}$","$10^{-5}$"])
     plot_cbar(sequential_cmap.reversed(), [0,2,4,6,8,10], "$\Delta G$ - on-target $\Delta G$", "crosshyb_free_energy_cbar")
+    plot_legend(barcode_legend, "barcode_legend")
+    plot_legend(barcoding_clone_legend, "barcoding_clone_legend","Clone")
 
