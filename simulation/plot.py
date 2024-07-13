@@ -95,7 +95,7 @@ def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","d
     save_plot(fig, f"{metric}_parameter_sweep_lineplot", plots_path)
 
 # Min characters line plot
-def min_characters_lineplot(figsize=(2, 2)):
+def min_characters_lineplot(plot_name,figsize=(2, 2)):
     fig, ax = plt.subplots(figsize=figsize)
     data = pd.read_csv(results_path / "min_characters_simulation.csv")
     data["cells"] = 2**data["generations"]
@@ -106,7 +106,21 @@ def min_characters_lineplot(figsize=(2, 2)):
     plt.xlabel(param_names["size"])
     plt.ylabel(param_names["characters"])
     ax.xaxis.set_major_locator(ticker.FixedLocator([1e3, 1e6, 1e9]))
-    save_plot(fig, "min_characters_lineplot", plots_path)
+    save_plot(fig,plot_name,plots_path)
+
+# Optimal rate line plot
+def optimal_rate_lineplot(plot_name,log = True,figsize = (2,2)):
+    optimal_rate = pd.read_csv(results_path / "optimal_rate_simulation.csv")
+    fig, ax = plt.subplots(figsize = (2,2),layout = "constrained",dpi = 600)
+    sns.lineplot(data = optimal_rate,x = "generations",y = "edit_rate")
+    ax.set_xlabel("Days of tracing")
+    ax.set_ylabel("Optimal edit rate (edits/day)")
+    if log:
+        plt.yscale("log")
+        plt.ylim(.01,.3)
+    plt.xticks([0,20,40,60,80,100])
+    plt.grid(True, which="both", ls="--", alpha = .5)
+    save_plot(fig, plot_name, plots_path)
 
 if __name__ == "__main__":
     # Load data
@@ -120,7 +134,8 @@ if __name__ == "__main__":
         metric_heatmap(states_vs_frac,"edit_frac","states",metric,vmin = vmin,vmax =  vmax)
         metric_heatmap(states_vs_entropy,"entropy","states",metric,vmin = vmin,vmax =  vmax)
         parameter_lineplots(param_sweep,metric)
-    min_characters_lineplot()
+    min_characters_lineplot("min_characters_lineplot")
+    optimal_rate_lineplot("optimal_log_rate_lineplot",log = True)
     
     
 
