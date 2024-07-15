@@ -93,7 +93,7 @@ def edit_rate_scatterplot(plot_name,log=True,figsize = (2,2)):
     save_plot(fig,plot_name,plots_path)
 
 
-def variant_rate_heatmap(plot_name,log=True,figsize = (4,2.5)):
+def variant_rate_heatmap(plot_name,log=True,vmin = -3,vmax = 0,figsize = (4,2.5)):
     """Plot heatmap of editing rates for each base and position"""
     # Load data
     rates = pd.read_csv(results_path / "edit_rates.csv")
@@ -105,7 +105,7 @@ def variant_rate_heatmap(plot_name,log=True,figsize = (4,2.5)):
         pos_rate.columns = pos_rate.columns.astype(int)
         if log:
             pos_rate = pos_rate.map(lambda x: np.log10(x))
-            sns.heatmap(pos_rate,cmap="viridis",ax=ax,cbar=False,vmin = -3,vmax = 0)
+            sns.heatmap(pos_rate,cmap="viridis",ax=ax,cbar=False,vmin = vmin,vmax = vmax)
         else:
             sns.heatmap(pos_rate,cmap="viridis",ax=ax,cbar=False,vmin = 0,vmax = 0.5)
         ax.set_xlabel("")
@@ -122,8 +122,12 @@ def variant_rate_heatmap(plot_name,log=True,figsize = (4,2.5)):
     # Add colorbar
     cbar_ax = fig.add_axes([1.05, 0.25, 0.03, 0.45])
     if log:
-        add_cbar(cbar_ax,"viridis",[0,-1,-2,-3],"Edit rate (edits/day)",
-            ticklabels=["$10^{0}$","$10^{-1}$","$10^{-2}$","$10^{-3}$"])
+        if vmin == -3:
+            add_cbar(cbar_ax,"viridis",[0,-1,-2,-3],"Edit rate (edits/day)",
+                ticklabels=["$10^{0}$","$10^{-1}$","$10^{-2}$","$10^{-3}$"])
+        if vmin == -2:
+            add_cbar(cbar_ax,"viridis",[0,-1,-2],"Edit rate (edits/day)",
+                ticklabels=["$10^{0}$","$10^{-1}$","$10^{-2}$"])
     else:
         add_cbar(cbar_ax,"viridis",[0,.1,.2,.3,.4,.5],"Edit rate (edits/day)")
     save_plot(fig,plot_name,plots_path)
@@ -137,4 +141,5 @@ if __name__ == "__main__":
     edit_rate_scatterplot("variant_log_rate_scatterplot",log=True,figsize = (2.5,2.5))
     edit_rate_scatterplot("variant_rate_scatterplot",log=False,figsize = (2.5,2.5))
     variant_rate_heatmap("variant_log_rate_heatmap",log=True,figsize = (4,2.5))
+    variant_rate_heatmap("variant_clipped_log_rate_heatmap",vmin = -2,log=True,figsize = (4,2.5))
     variant_rate_heatmap("variant_rate_heatmap",log = False,figsize = (4,2.5))

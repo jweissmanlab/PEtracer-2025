@@ -24,9 +24,9 @@ c.setFont('Arial-Bold', 14)
 # Render panels
 render_plot(c, "A", sim_path / "rf_heatmap_edit_frac_vs_states.svg", 0, 0)
 render_plot(c, "B", sim_path / "rf_parameter_sweep_lineplot.svg", 2.3, 0,x_offset = 22)
-render_plot(c, "C", sim_path / "frac_over_time_lineplot.svg", 0, 2.7,x_offset = 20,y_offset=20)
-render_plot(c, "D", sim_path / "log_edit_rate_lineplot.svg", 2.9, 2.7,x_offset = 20,y_offset=20)
-render_plot(c, "E", insert_path / "correct_frac_vs_length.svg", 6, 2.7,x_offset = 25,y_offset=20)
+render_plot(c, "C", sim_path / "frac_over_time_lineplot.svg", 0, 2.8,x_offset = 20,y_offset=20)
+render_plot(c, "D", sim_path / "log_edit_rate_lineplot.svg", 2.9, 2.8,x_offset = 20,y_offset=20)
+render_plot(c, "E", insert_path / "correct_frac_vs_length.svg", 6, 2.8,x_offset = 25,y_offset=20)
 
 # Save canvas
 c.save()

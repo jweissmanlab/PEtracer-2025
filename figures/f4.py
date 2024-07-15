@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
 
 # Configure paths
 figure_path = Path(__file__).parent
@@ -13,7 +15,8 @@ from src.utils import render_plot, convert_svg_text
 
 # Make canvas
 c = canvas.Canvas(str(figure_path / "f4.pdf"), pagesize=(8.5*72, 11*72))
-c.setFont("Helvetica-Bold", 14)
+pdfmetrics.registerFont(TTFont('Arial-Bold', 'Arial_Bold.ttf'))
+c.setFont('Arial-Bold', 14)
 
 # Render panels
 #convert_svg_text(barcoding_path / "barcoding_schematic.svg")

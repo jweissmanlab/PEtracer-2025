@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
 
 # Configure paths
 figure_path = Path(__file__).parent
@@ -13,7 +15,8 @@ from src.utils import render_plot
 
 # Make canvas
 c = canvas.Canvas(str(figure_path / "s6.pdf"), pagesize=(8.5*72, 11*72))
-c.setFont("Helvetica", 16)
+pdfmetrics.registerFont(TTFont('Arial-Bold', 'Arial_Bold.ttf'))
+c.setFont('Arial-Bold', 14)
 
 # Render panels
 render_plot(c, "A", barcoding_path / "clone_1_combined_clades.png", 0, 0,y_offset=5)
