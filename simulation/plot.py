@@ -16,7 +16,7 @@ plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
 from src.utils import save_plot
-from src.config import colors, sequential_cmap
+from src.config import colors, sequential_cmap, discrete_cmap
 
 # Define constants
 metric_names = {"rf":"Robinson-Foulds distance",
@@ -45,7 +45,7 @@ def metric_heatmap(data,x,y,metric = "rf",vmin = 0,vmax = 1,figsize = (2.2,2.2))
     data["detection_rate"] = (100 - data["missing_rate"] * 100).astype(int)
     data = data.pivot_table(index = y,columns = x,values = metric)
     data = data.sort_index(ascending = False)
-    fig, ax = plt.subplots(figsize = figsize)
+    fig, ax = plt.subplots(figsize = figsize,layout = "constrained",dpi = 600)
     cmap = sequential_cmap.reversed() if metric == "rf" else sequential_cmap
     sns.heatmap(data,cmap = cmap,annot = True,cbar=False,
                 fmt = ".2f",ax = ax,annot_kws={"size": 9},vmax = vmax,vmin = vmin)
@@ -55,13 +55,13 @@ def metric_heatmap(data,x,y,metric = "rf",vmin = 0,vmax = 1,figsize = (2.2,2.2))
     save_plot(fig, f"{metric}_heatmap_{x}_vs_{y}", plots_path)
 
 # Parameter sweep line plots
-def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","detection_rate"]):
+def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","detection_rate"],figsize=(6,2.2)):
     data = data.query("solver.isin(@solver_names.keys())").copy()
     data["edit_frac"] = (data["edit_frac"] * 100).astype(int)
     data["detection_rate"] = (100 - data["missing_rate"] * 100).astype(int)
     metric_min = data[metric].min()
     metric_max = data[metric].max()
-    fig, axes = plt.subplots(1, 4, figsize=(7.1, 2.2),layout = "constrained")
+    fig, axes = plt.subplots(1, 4, figsize=figsize,layout = "constrained",dpi = 600)
     for i, param in enumerate(params):
         param_data = data.copy()
         for var_param in param_defaults.keys():
@@ -87,11 +87,11 @@ def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","d
             axes[i].set_xscale('log')
     solver_handles = [mlines.Line2D([], [], color=solver_colors[solver],
                                     label=solver_names[solver].replace(" ", "\n")) for solver in solver_names.keys()]
-    fig.legend(handles=solver_handles, loc='center left', bbox_to_anchor=(1, 0.8), title = "Solver")
+    fig.legend(handles=solver_handles, loc='upper left', bbox_to_anchor=(0.15, .05), title = "Solver",ncol = 3,columnspacing = 1)
     indel_handles = [mlines.Line2D([], [], color='black', linestyle='-', marker='o', label="8 uniform"),
                      mlines.Line2D([], [], color='black', linestyle='--', marker='x', label="Indel",markersize = 8)]
-    fig.legend(handles=indel_handles, loc='center left', bbox_to_anchor=(1, 0.5),
-               title="Distribution")
+    fig.legend(handles=indel_handles, loc='upper left', bbox_to_anchor=(0.6, .05),
+               title="LM distribution",ncol = 2,columnspacing = 1)
     save_plot(fig, f"{metric}_parameter_sweep_lineplot", plots_path)
 
 # Min characters line plot
@@ -99,8 +99,8 @@ def min_characters_lineplot(plot_name,figsize=(2, 2)):
     fig, ax = plt.subplots(figsize=figsize)
     data = pd.read_csv(results_path / "min_characters_simulation.csv")
     data["cells"] = 2**data["generations"]
-    data["min_pct"] = (data["min_frac"] * 100).astype(int)
-    sns.lineplot(x="cells", y="characters", data=data, hue="min_pct",palette=colors[:3])
+    data["edit_pct"] = (data["branch_edit_frac"] * 100).astype(int)
+    sns.lineplot(x="cells", y="characters", data=data, hue="edit_pct",palette=colors[:3])
     plt.legend(title="Branches \nwith edit (%)",alignment = "left")
     plt.xscale('log')
     plt.xlabel(param_names["size"])
@@ -109,18 +109,35 @@ def min_characters_lineplot(plot_name,figsize=(2, 2)):
     save_plot(fig,plot_name,plots_path)
 
 # Optimal rate line plot
-def optimal_rate_lineplot(plot_name,log = True,figsize = (2,2)):
-    optimal_rate = pd.read_csv(results_path / "optimal_rate_simulation.csv")
-    fig, ax = plt.subplots(figsize = (2,2),layout = "constrained",dpi = 600)
-    sns.lineplot(data = optimal_rate,x = "generations",y = "edit_rate")
+def edit_rate_lineplot(plot_name,log = True,figsize = (3,2)):
+    edit_rate = pd.read_csv(results_path / "edit_rate_simulation.csv")
+    edit_rate["edit_pct"] = (edit_rate["site_edit_frac"] * 100).astype(int)
+    fig, ax = plt.subplots(figsize = figsize,layout = "constrained",dpi = 600)
+    sns.lineplot(data = edit_rate,x = "generations",y = "edit_rate",hue = "edit_pct",palette = discrete_cmap[4])
     ax.set_xlabel("Days of tracing")
-    ax.set_ylabel("Optimal edit rate (edits/day)")
+    ax.set_ylabel("Edit rate (edits/day)")
     if log:
         plt.yscale("log")
-        plt.ylim(.01,.3)
+        plt.ylim(.009,.3)
     plt.xticks([0,20,40,60,80,100])
     plt.grid(True, which="both", ls="--", alpha = .5)
     save_plot(fig, plot_name, plots_path)
+    plt.legend(title = "Edit sites\nwith LM (%)",bbox_to_anchor=(1, 1), loc='upper left')
+    save_plot(fig, plot_name, plots_path)
+
+# Fraction of edit sites over time line plot
+def frac_over_time_lineplot(plot_name,figsize=(2.8,2)):
+    # Load data
+    results = pd.read_csv(results_path / "frac_over_times_simulation.csv")
+    results["edit_pct"] = results["site_edit_frac"] * 100
+    # Plot
+    fig, ax = plt.subplots(figsize = (2.8,2),layout = "constrained",dpi = 600)
+    sns.lineplot(data = results,x = "generations",y = "edit_pct",hue = "edit_rate",legend = True,palette = discrete_cmap[5])
+    ax.set_xlabel("Day")
+    ax.set_ylabel("Edit sites with LM (%)")
+    plt.xticks([0,10,20,30]);
+    plt.legend(title = "Edit rate\n(edits/day)",bbox_to_anchor=(1, 1), loc='upper left')
+    save_plot(fig,plot_name,plots_path)
 
 if __name__ == "__main__":
     # Load data
@@ -133,9 +150,10 @@ if __name__ == "__main__":
         vmin = .3
         metric_heatmap(states_vs_frac,"edit_frac","states",metric,vmin = vmin,vmax =  vmax)
         metric_heatmap(states_vs_entropy,"entropy","states",metric,vmin = vmin,vmax =  vmax)
-        parameter_lineplots(param_sweep,metric)
-    min_characters_lineplot("min_characters_lineplot")
-    optimal_rate_lineplot("optimal_log_rate_lineplot",log = True)
+        parameter_lineplots(param_sweep,metric,figsize=(6,2.2))
+    min_characters_lineplot("min_characters_lineplot",figsize=(2.2,0))
+    edit_rate_lineplot("log_edit_rate_lineplot",log = True,figsize = (3.1,2))
+    edit_rate_lineplot("edit_rate_lineplot",log = False,figsize = (3,2))
     
     
 

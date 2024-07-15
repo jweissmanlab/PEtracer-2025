@@ -187,14 +187,14 @@ def states_vs_frac_simulation(threads = 30):
 def edit_frac_simulation(num_simulations=100,max_generations=100,max_characters=120):
     results = []
     for edit_rate in np.linspace(0, .3, 61):
-        edits = np.zeros((num_simulations,max_generations+1,max_characters), dtype=bool)
+        edits = np.zeros((num_simulations,max_generations+1,max_characters+1), dtype=bool)
         for i in range(num_simulations):
-            edited = np.zeros(max_characters, dtype=bool)
+            edited = np.zeros(max_characters+1, dtype=bool)
             for j in range(max_generations+1):
-                edits[i,j] = (np.random.rand(max_characters) < edit_rate) & (~edited)
+                edits[i,j] = (np.random.rand(max_characters+1) < edit_rate) & (~edited)
                 edited = edited | edits[i,j]
         for j in range(1,max_generations+1):
-            for k in range(1,max_characters):
+            for k in range(1,max_characters+1):
                 has_edit = np.any(edits[:,:j,:k],axis = (2))
                 branch_edit_frac = np.sum(has_edit) / (j * num_simulations)
                 site_edit_frac = edits[:,:j,:k].sum() / (k * num_simulations)
@@ -209,27 +209,29 @@ def edit_frac_simulation(num_simulations=100,max_generations=100,max_characters=
 def min_characters_simulation(min_edit_fracs = [.7,.8,.9], num_simulations = 10):
     results = []
     for iteration in range(num_simulations):
-        edit_fracs = edit_frac_simulation()
+        edit_fracs = edit_frac_simulation(num_simulations=10,max_generations=30)
         for min_frac in min_edit_fracs:
             min_characters = edit_fracs.query("branch_edit_frac > @min_frac").groupby(
                 "generations").agg({"characters":"min"}).reset_index()
-            min_characters["min_frac"] = min_frac
+            min_characters["branch_edit_frac"] = min_frac
             min_characters["iteration"] = iteration
             results.append(min_characters)
     results = pd.concat(results)
     results.to_csv(results_path / "min_characters_simulation.csv",index = False)
 
 # Simulate optimal edit rate for fraction of sites with edit
-def optimal_rate_simulation(desired_edit_frac = .7, num_simulations = 10):
+def edit_rate_simulation(min_edit_fracs = [.6,.7,.8,.9], num_simulations = 10):
     results = []
     for iteration in range(num_simulations):
         edit_fracs = edit_frac_simulation(num_simulations=10,max_characters=61)
-        optimal_rate = edit_fracs.query("site_edit_frac > @desired_edit_frac & characters == 60").sort_values(
-            "site_edit_frac").groupby("generations").agg({"edit_rate":"first"}).reset_index()
-        optimal_rate["iteration"] = iteration
-        results.append(optimal_rate)
+        for edit_frac in min_edit_fracs:
+            required_rate = edit_fracs.query("site_edit_frac > @edit_frac & characters == 60").sort_values(
+                "site_edit_frac").groupby("generations").agg({"edit_rate":"first"}).reset_index()
+            required_rate["iteration"] = iteration
+            required_rate["site_edit_frac"] = edit_frac
+            results.append(required_rate)
     results = pd.concat(results)
-    results.to_csv(results_path / "optimal_rate_simulation.csv",index = False)
+    results.to_csv(results_path / "edit_rate_simulation.csv",index = False)
 
 # Simulate trees sweeping the other parameters
 def parameter_sweep_simulation(threads = 30):
@@ -272,8 +274,8 @@ if __name__ == "__main__":
     print("Simulating trees varying the number of states and the edit fraction")
     #states_vs_frac_simulation(threads = threads)
     print("Simulating trees sweeping the other parameters")
-    parameter_sweep_simulation(threads = threads)
+    #parameter_sweep_simulation(threads = threads)
     print("Simulating minimum number of characters for large trees")
-    #min_characters_simulation()
+    min_characters_simulation()
     print("Simulating optimal edit rate vs experiment length")
-    #optimal_rate_simulation()
+    #edit_rate_simulation()
