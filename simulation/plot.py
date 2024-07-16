@@ -113,7 +113,8 @@ def edit_rate_lineplot(plot_name,log = True,figsize = (3,2)):
     edit_rate = pd.read_csv(results_path / "edit_rate_simulation.csv")
     edit_rate["edit_pct"] = (edit_rate["site_edit_frac"] * 100).astype(int)
     fig, ax = plt.subplots(figsize = figsize,layout = "constrained",dpi = 600)
-    sns.lineplot(data = edit_rate,x = "generations",y = "edit_rate",hue = "edit_pct",palette = ["gray",colors[1],colors[2],"lightgray"])
+    sns.lineplot(data = edit_rate,x = "generations",y = "edit_rate",hue = "edit_pct",
+                 palette = ["gray",colors[1],colors[2],colors[4],"lightgray"])
     ax.set_xlabel("Days of tracing")
     ax.set_ylabel("Edit rate (edits/day)")
     if log:

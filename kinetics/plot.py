@@ -143,7 +143,7 @@ def relative_rate_violin(plot_name,figsize = (1,2)):
     sns.violinplot(data=edit_rates.query("relative_rate < 10"), y="relative_rate", inner=None, cut=0, linewidth=.5, color=colors[1],linecolor="black")
     sns.stripplot(data=edit_rates.query("relative_rate < 10"), y="relative_rate", color='black', jitter=True, size=2)
     ax.set(xticks=[])
-    plt.xlabel("Variants")
+    plt.xlabel("Protospacer\nVariants")
     plt.ylabel("B16F10 / 4T1 (edits/day)")
     # Add mean line
     mean_value = edit_rates.query("relative_rate < 10")["relative_rate"].mean()
@@ -161,4 +161,4 @@ if __name__ == "__main__":
     variant_rate_heatmap("variant_log_rate_heatmap",log=True,figsize = (4,2.5))
     variant_rate_heatmap("variant_clipped_log_rate_heatmap",vmin = -2,log=True,figsize = (4,2.5))
     variant_rate_heatmap("variant_rate_heatmap",log = False,figsize = (4,2.5))
-    relative_rate_violin("relative_rate_violin",figsize = (1.2,2.5))
+    relative_rate_violin("relative_rate_violin",figsize = (1.2,2.35))

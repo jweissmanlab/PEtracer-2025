@@ -220,7 +220,7 @@ def min_characters_simulation(min_edit_fracs = [.7,.8,.9], num_simulations = 10)
     results.to_csv(results_path / "min_characters_simulation.csv",index = False)
 
 # Simulate optimal edit rate for fraction of sites with edit
-def edit_rate_simulation(min_edit_fracs = [.6,.7,.8,.9], num_simulations = 10):
+def edit_rate_simulation(min_edit_fracs = [.5,.6,.7,.8,.9], num_simulations = 10):
     results = []
     for iteration in range(num_simulations):
         edit_fracs = edit_frac_simulation(num_simulations=10,max_characters=61)
@@ -276,6 +276,6 @@ if __name__ == "__main__":
     print("Simulating trees sweeping the other parameters")
     #parameter_sweep_simulation(threads = threads)
     print("Simulating minimum number of characters for large trees")
-    min_characters_simulation()
+    #min_characters_simulation()
     print("Simulating optimal edit rate vs experiment length")
-    #edit_rate_simulation()
+    edit_rate_simulation()
