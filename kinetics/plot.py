@@ -105,9 +105,9 @@ def variant_rate_heatmap(plot_name,log=True,vmin = -3,vmax = 0,figsize = (4,2.5)
         pos_rate.columns = pos_rate.columns.astype(int)
         if log:
             pos_rate = pos_rate.map(lambda x: np.log10(x))
-            sns.heatmap(pos_rate,cmap="viridis",ax=ax,cbar=False,vmin = vmin,vmax = vmax)
+            sns.heatmap(pos_rate,cmap="jet",ax=ax,cbar=False,vmin = vmin,vmax = vmax)
         else:
-            sns.heatmap(pos_rate,cmap="viridis",ax=ax,cbar=False,vmin = 0,vmax = 0.5)
+            sns.heatmap(pos_rate,cmap="jet",ax=ax,cbar=False,vmin = 0,vmax = 0.5)
         ax.set_xlabel("")
         ax.set_ylabel("")
         if i == 2:
@@ -123,13 +123,31 @@ def variant_rate_heatmap(plot_name,log=True,vmin = -3,vmax = 0,figsize = (4,2.5)
     cbar_ax = fig.add_axes([1.05, 0.25, 0.03, 0.45])
     if log:
         if vmin == -3:
-            add_cbar(cbar_ax,"viridis",[0,-1,-2,-3],"Edit rate (edits/day)",
+            add_cbar(cbar_ax,"jet",[0,-1,-2,-3],"Edit rate (edits/day)",
                 ticklabels=["$10^{0}$","$10^{-1}$","$10^{-2}$","$10^{-3}$"])
         if vmin == -2:
-            add_cbar(cbar_ax,"viridis",[0,-1,-2],"Edit rate (edits/day)",
+            add_cbar(cbar_ax,"jet",[0,-1,-2],"Edit rate (edits/day)",
                 ticklabels=["$10^{0}$","$10^{-1}$","$10^{-2}$"])
     else:
-        add_cbar(cbar_ax,"viridis",[0,.1,.2,.3,.4,.5],"Edit rate (edits/day)")
+        add_cbar(cbar_ax,"jet",[0,.1,.2,.3,.4,.5],"Edit rate (edits/day)")
+    save_plot(fig,plot_name,plots_path)
+
+
+def relative_rate_violin(plot_name,figsize = (1,2)):
+    """Plot violin plot of relative editing rates"""
+    # Load data
+    edit_rates = pd.read_csv(results_path / "edit_rates.csv",index_col=0)
+    edit_rates["relative_rate"] = edit_rates["B16F10_rate"]/edit_rates["4T1_rate"]
+    # Plot
+    fig,ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
+    sns.violinplot(data=edit_rates.query("relative_rate < 10"), y="relative_rate", inner=None, cut=0, linewidth=.5, color=colors[1],linecolor="black")
+    sns.stripplot(data=edit_rates.query("relative_rate < 10"), y="relative_rate", color='black', jitter=True, size=2)
+    ax.set(xticks=[])
+    plt.xlabel("Variants")
+    plt.ylabel("B16F10 / 4T1 (edits/day)")
+    # Add mean line
+    mean_value = edit_rates.query("relative_rate < 10")["relative_rate"].mean()
+    plt.axhline(mean_value, color='black', linestyle='--', linewidth=1.5)
     save_plot(fig,plot_name,plots_path)
 
 # Generate plots
@@ -143,3 +161,4 @@ if __name__ == "__main__":
     variant_rate_heatmap("variant_log_rate_heatmap",log=True,figsize = (4,2.5))
     variant_rate_heatmap("variant_clipped_log_rate_heatmap",vmin = -2,log=True,figsize = (4,2.5))
     variant_rate_heatmap("variant_rate_heatmap",log = False,figsize = (4,2.5))
+    relative_rate_violin("relative_rate_violin",figsize = (1.2,2.5))
