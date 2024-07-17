@@ -140,6 +140,18 @@ def frac_over_time_lineplot(plot_name,figsize=(2.8,2)):
     plt.legend(title = "Edit rate\n(edits/day)",bbox_to_anchor=(1, 1), loc='upper left')
     save_plot(fig,plot_name,plots_path)
 
+# RF vs triplets scatter plot
+def rf_vs_triplets_scattterplot(plot_name,figsize = (2.2,2.2)):
+    fig,ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
+    sns.scatterplot(data=param_sweep,x="rf",y="triplets",s = 10,alpha = 0.8,ax=ax,color = colors[1])
+    sns.regplot(data=param_sweep,x="rf",y="triplets",scatter=False,color="black",line_kws={"linewidth":1},ax=ax)
+    # add r2 value to plot
+    r2 = np.corrcoef(param_sweep["rf"],param_sweep["triplets"])[0,1]**2
+    plt.text(0.6,0.95,f"$r^2$ = {r2:.2f}")
+    plt.xlabel(metric_names["rf"])
+    plt.ylabel(metric_names["triplets"])
+    save_plot(fig,plot_name,plots_path)
+
 if __name__ == "__main__":
     # Load data
     states_vs_frac = pd.read_csv(results_path / "states_vs_frac_simulation.csv")
@@ -155,6 +167,7 @@ if __name__ == "__main__":
     min_characters_lineplot("min_characters_lineplot",figsize=(2.2,0))
     edit_rate_lineplot("log_edit_rate_lineplot",log = True,figsize = (3.1,2))
     edit_rate_lineplot("edit_rate_lineplot",log = False,figsize = (3,2))
+    rf_vs_triplets_scattterplot("rf_vs_triplets_scatterplot",figsize = (2.2,2.2))
     
     
 
