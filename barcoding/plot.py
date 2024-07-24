@@ -27,7 +27,7 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
-from src.config import colors,discrete_cmap,threads,site_names,edit_ids,edit_names
+from src.config import colors,discrete_cmap,threads,site_names,edit_ids,edit_names,site_ids,edit_palette
 from src.utils import save_plot
 from src.tree_utils import plot_grouped_characters
 from src.legends import barcode_legend,barcoding_clone_legend
@@ -78,13 +78,13 @@ def clone_fmi_violin(plot_name,figsize = (2,2)):
     clone_fmi = pd.read_csv(results_path / "clone_fmi.csv")
     fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
     sns.violinplot(data=clone_fmi.query("solver == 'upgma'"), x="permute", y="fmi",inner = None, 
-                palette=discrete_cmap[2],saturation=1,linewidth =.5,bw = 1)
-    sns.swarmplot(data=clone_fmi.query("solver == 'upgma'"), x="permute", y="fmi", color="black",size=2)
+                palette=[colors[2],"lightgray"],saturation=1,linewidth =.5,bw = 1)
+    sns.swarmplot(data=clone_fmi.query("solver == 'upgma'"), x="permute", y="fmi", color="black",size=3)
     plt.ylabel(metric_names["fmi"]);
-    plt.xlabel("");
+    plt.xlabel("Barcodes");
     plt.ylim(0,1.05);
     plt.yticks([0,0.5,1]);
-    plt.xticks([0,1],["True\nbarcodes","Permuted\nbarcodes"]);
+    plt.xticks([0,1],["True","Mixed"]);
     save_plot(fig, plot_name, plots_path)
 
 def clone_fmi_lineplot(plot_name,x,figsize = (2,2)):
@@ -256,13 +256,13 @@ def lca_depth_ridgeplot(plot_name,figsize):
             ax.set_xticks([])
             ax.set_xlabel("")
         else:
-            ax.xaxis.set_major_locator(ticker.MultipleLocator(4))
+            ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
             ax.set_xlabel("Inferred LCA time (days)")
         if i == 4:
             ax.set_ylabel("Barcode clade density")
         ax.set_xlim(0, 16)
         ax.set_ylim(0, .6)
-        ax.text(11, .05, f"Clone {i}", fontsize=10)
+        ax.text(12, .05, f"Clone {i}", fontsize=10)
         ax.axvline(5, color=colors[1], linestyle="--", linewidth=1)
         ax.axvline(7, color=colors[2], linestyle="--", linewidth=1)
     # Add legeng
@@ -272,12 +272,36 @@ def lca_depth_ridgeplot(plot_name,figsize):
                 bbox_to_anchor=(.5, -.16),columnspacing = .5)
     save_plot(fig,plot_name, plots_path)
 
+def edit_fraction_stacked_barplot(plot_name,figsize=(1,2)):
+    # Get edit fractions
+    alleles = pd.read_csv(data_path / "barcoding_alleles.csv",keep_default_na=False)
+    alleles = alleles.query("whitelist").copy()
+    for site in edit_ids.keys():
+        alleles[site] = alleles[site].map(edit_ids[site]).fillna(9)
+    alleles = alleles.melt(id_vars=["clone"], value_vars=site_ids.keys(), var_name="site", value_name="allele")
+    alleles["site"] = alleles["site"].map(site_ids)   
+    edit_counts = alleles.groupby(["site","allele"]).size().unstack(fill_value=0)
+    edit_order = list(range(1,9)) + [9,0]
+    edit_counts = edit_counts.reindex(columns=edit_order)
+    edit_fracs = edit_counts.div(edit_counts.sum(axis=1), axis=0) * 100
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize,dpi=600,layout = "constrained")
+    edit_fracs.plot(kind='bar', stacked=True,color = [edit_palette[str(i)] for i in edit_fracs.columns],ax = ax,width = .9)
+    plt.legend().remove()
+    plt.xlabel("Edit site")
+    plt.ylabel("Fraction of LMs (%)")
+    plt.tight_layout()
+    plt.xticks(rotation=0)
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(25))
+    save_plot(fig, "edit_fraction_stacked_barplot", plots_path)
+
 ## Generate plots
 if __name__ == "__main__":
     # Clone stats
     clone_stats_table("clone_stats_table")
+    edit_fraction_stacked_barplot("edit_fraction_stacked_barplot",figsize=(1.3,2))
     # FMI
-    clone_fmi_violin("clone_fmi_violin",figsize = (2,2))
+    clone_fmi_violin("clone_fmi_violin",figsize = (1.5,2))
     nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2.2,2.2))
     clone_fmi_lineplot("clone_fmi_vs_characters_lineplot",x = "characters",figsize = (2,2))
     clone_fmi_lineplot("clone_fmi_vs_detection_lineplot",x = "detection_rate",figsize = (2,2))
@@ -287,7 +311,7 @@ if __name__ == "__main__":
     distance_comparison_kdeplot("blast_distance_comparison_kdeplot",distances,"blast",figsize = (2.8,2.8))
     ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
     # LCA depths
-    lca_depth_ridgeplot("lca_depth_ridgeplot",(2,2))
+    lca_depth_ridgeplot("lca_depth_ridgeplot",(2.5,2))
     # Clone trees
     for clone in range(1,7):
         polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
