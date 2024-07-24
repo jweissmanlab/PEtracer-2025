@@ -17,6 +17,7 @@ import networkx as nx
 import treedata as td
 import pycea
 import shapely as shp
+import pickle
 
 # Configure
 results_path = Path(__file__).parent / "results"
@@ -29,7 +30,7 @@ plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
 from src.config import colors,sequential_cmap,site_names,edit_ids,min_edit_prob, edit_cmap
-from src.config import img_paths, edit_palette, preedited_clone_colors, fov_size
+from src.config import img_paths, edit_palette, preedited_clone_colors, fov_size, discrete_cmap, default_decoder
 from src.utils import save_plot
 from src.tree_utils import alleles_to_characters, plot_grouped_characters
 from src.img_utils import load_fov, get_rgb, unsharp_mask, plot_region
@@ -42,7 +43,7 @@ experiment_names = {"merfish_invitro":"MERFISH in vitro",
                     "Zombie MERFISH in vitro"}
 experiment_fovs = {"merfish_invitro":[-50,60,125,235],
                    "merfish_invivo":[1070,2585,1270,2785],
-                   "merfish_zombie":[-100,140,100,340]}
+                   "merfish_zombie":[-300,140,-100,340]}
 experiment_cells = {"merfish_invitro":[26,141,46.5,166]}    
 
 ### Helper functions ###
@@ -54,6 +55,15 @@ def add_colored_border(image, border_thickness=1, border_color=(255, 0, 0)):
     image[:, -border_thickness:, :] = border_color
     return np.clip(image,0,1)
 
+def get_edit_accuracy(alleles,x,y,min_prob = None):
+    correct = []
+    for site in site_names:
+        if min_prob:
+            filtered_df = alleles.query(f"{site}_prob > @min_prob")
+            correct.append((filtered_df[x.format(site = site)] == filtered_df[y.format(site = site)]).mean())
+        else:
+            correct.append((alleles[x.format(site = site)] == alleles[y.format(site = site)]).mean())
+    return np.mean(correct)
 
 def calculate_detection_stats(experiments,prefix):
     '''Calculate detection stats for preedited experiments'''
@@ -173,7 +183,7 @@ def plot_character_heatmap(plot_name,experiment,figsize = (4,3)):
     fig, ax = plt.subplots(figsize = figsize,dpi = 600,layout = "constrained")
     pycea.pl.branches(tdata,linewidth=0,depth_key="time")
     pycea.pl.annotation(tdata,keys=["clone"],width=4,palette = preedited_clone_colors,label = "Clone")
-    plot_grouped_characters(tdata,width = 1,label = True)
+    plot_grouped_characters(tdata,width = 1,label = True,offset = 1)
     plt.legend(handles = edit_legend,ncol = 5,loc = "center",bbox_to_anchor = (0.5,-.32),columnspacing=.8,)
     plt.xticks(fontsize=9)
     ax.tick_params(axis='x', pad=0)
@@ -470,11 +480,89 @@ def barcode_mapping_heatmap(plot_name,figsize = (4,2.5)):
     save_plot(fig,plot_name,plots_path)
     plt.close(fig)
 
+def decoding_vs_intensity_lineplot(plot_name,experiments,figsize = (1.7,1.7)):
+    # Load data
+    spots = []
+    for experiment in experiments:
+        path = img_paths[f"preedited_{experiment}"]["analysis"].replace("Analysis/","")
+        spots.append(pd.read_csv(f"{path}decoded_spots.csv",keep_default_na=False,index_col=0).assign(experiment = experiment))
+    spots = pd.concat(spots)
+    spots["decoded"] = spots["intBC_dist"] < 1.2
+    # Get fraction decoded
+    bins = np.logspace(np.log10(200), np.log10(15000), num=20, base=10).astype(int)
+    spots["intensity_bin"] = pd.cut(spots["intBC_intensity"],bins=bins,labels = bins[:-1])
+    frac_decoded = spots.groupby(["experiment","intensity_bin"],observed=True)["decoded"].mean().reset_index(name="frac_decoded")
+    frac_decoded["frac_decoded"] = frac_decoded["frac_decoded"] * 100
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize, dpi=600, layout="constrained")
+    sns.lineplot(data=frac_decoded, x="intensity_bin", y="frac_decoded", hue="experiment", ax=ax,palette = colors[1:3],legend=False)
+    ax.set_xscale("log")
+    ax.set_xlabel("Spots intensity")
+    ax.set_ylabel("intBCs decoded (%)")
+
+def decoder_accuracy_barplot(plot_name,experiment,figsize=(2.5, 2.5)):
+    '''Plot decoder accuracy barplot for preedited experiment'''
+    # Load data
+    alleles = pd.read_csv(data_path / f"{experiment}_alleles.csv",
+                        keep_default_na=False,dtype={"clone":str})
+    clone_whitelist = pd.read_csv(data_path / "preedited_clone_whitelist.csv",
+                            keep_default_na=False,dtype={"clone":str})
+    alleles = alleles.merge(clone_whitelist.rename(
+            columns = {"EMX1":"EMX1_actual","RNF2":"RNF2_actual","HEK3":"HEK3_actual"}),
+            on = ["intID","clone"],how = "left").query("whitelist")
+    # Calculate accuracy  
+    brightest_round = get_edit_accuracy(alleles,"{site}_actual","{site}_brightest") * 100
+    classifier = get_edit_accuracy(alleles,"{site}_actual","{site}") * 100
+    threshold = get_edit_accuracy(alleles,"{site}_actual","{site}",min_prob = min_edit_prob) * 100
+    accuracy = pd.DataFrame({"Max intensity":brightest_round,"LR classifier":classifier,"LR (p > 0.5)":threshold},index = [0])
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize, layout="constrained", dpi=600)
+    sns.barplot(data = accuracy.T.reset_index(),x = "index",y = 0,color = colors[1])
+    plt.ylim(95,100)
+    plt.xticks(rotation = 90)
+    plt.ylabel("Accuracy (%)")
+    plt.xlabel("")
+    save_plot(fig,plot_name,plots_path)
+
+def decoding_example_heatmaps(figsize = (2.1,2.1)):
+    # weight matrix
+    with open(ref_path / default_decoder, "rb") as f:
+        decoder = pickle.load(f)
+    weights = decoder["EMX1"].coef_[[7,0,4,1,5,6,2,3,8],:]
+    # vectors
+    intensities = np.array([327,33,17,434,51,14,1534,789,22])
+    corrected_intensities = np.array([327,13,17,434,21,14,1534,624,22])
+    norm_intensities = corrected_intensities / 2497
+    logits = norm_intensities @ weights
+    probs = np.exp(logits)/sum(np.exp(logits))
+    # plot vectors
+    fig, axes = plt.subplots(3,1,figsize=figsize,dpi = 600,layout = "constrained")
+    green_cmap = mcolors.LinearSegmentedColormap.from_list('two_color_cmap', ['white', '#009E73'])
+    for i, values in enumerate([intensities,norm_intensities,probs]):
+        ax = axes[i]
+        fmt = "d" if values.dtype == np.int64 else ".2f"
+        sns.heatmap(values[:,np.newaxis].T, cmap=green_cmap, annot=True, fmt = fmt,vmin = 0,
+                    cbar = False, ax = ax, annot_kws={"size": 8},square=True)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+    save_plot(fig, "decoding_example_intensities",plots_path)
+    # plot weight matrix
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
+    blue_red_cmap = mcolors.LinearSegmentedColormap.from_list('three_color_cmap', ['#1874CD','white', '#CD2626'])
+    sns.heatmap(weights,annot=True,cmap=blue_red_cmap,center=0,ax = ax,annot_kws={"size": 8},cbar=False,fmt=".1f",square=True)
+    plt.xticks([])
+    plt.yticks([])
+    for spine in ax.spines.values():
+            spine.set_visible(True)
+    save_plot(fig, "decoding_example_weights",plots_path)
 
 # Generate plots
 if __name__ == "__main__":
     clone_edit_whitelist("clone_edit_whitelist",(1.5,1))
     barcode_mapping_heatmap("preedited_barcode_mapping_heatmap",(4,2.5))
+    decoding_example_heatmaps((2.1,2.1))
     experiments = ["10x_invitro","merfish_invitro","merfish_invivo","merfish_zombie"]
     calculate_detection_stats(experiments,"preedited")
     # All experiments
@@ -490,10 +578,13 @@ if __name__ == "__main__":
         image_with_masks(f"{experiment}_fov",experiment,experiment_fovs[experiment],figsize = (2.5,2.5))
     # MERFISH invitro
     experiment = "merfish_invitro"
+    decoder_accuracy_barplot(f"{experiment}_accuracy_barplot",experiment,figsize=(1.5, 1.7))
+    decoding_vs_intensity_lineplot("decoding_vs_intensity_lineplot",
+                                   experiments = ["merfish_invitro","merfish_zombie"],figsize = (1.7,1.7))
     image_with_masks(f"{experiment}_fov",experiment,experiment_fovs[experiment], 
                      highlight=experiment_cells[experiment],figsize = (2.5,2.5))
     image_with_masks(f"{experiment}_cell",experiment,experiment_cells[experiment],label_spots=True,linewidth=2,figsize = (1.7,1.7))
-    layout_spot_images("merfish_invitro",crop = experiment_cells[experiment],fov = 31)
+    #layout_spot_images("merfish_invitro",crop = experiment_cells[experiment],fov = 31)
     experiment = "merfish_invitro"
     plot_spot_images(f"{experiment}_spot_images",experiment,experiment_cells[experiment],figsize = (8.2,4))
     # 10x invitro

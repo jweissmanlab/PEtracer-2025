@@ -52,11 +52,11 @@ img_paths = {
         "file_pattern": "{series}/Conv_zscan_{fov:02d}.dax"},
     "preedited_merfish_invivo": {
         "path": "/lab/weissman_imaging/puzheng/PE_LT/20240424-F242dpec_T7afterMerfish/",
-        "analysis": "/lab/weissman_imaging/wcolgan/20240424-F242dpec_T7afterMerfish/Analysis/",
+        "analysis": "/lab/weissman_imaging/MERFISH_Data/wcolgan/20240424-F242dpec_T7afterMerfish/Analysis/",
         "file_pattern": "{series}/Conv_zscan_{fov:03d}.dax"},
     "preedited_merfish_zombie": {
         "path": "/lab/weissman_imaging/puzheng/PE_LT/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/",
-        "analysis": "/lab/weissman_imaging/wcolgan/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/Analysis/",
+        "analysis": "/lab/weissman_imaging/wcolgan/MERFISH_Data/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/Analysis/",
         "file_pattern": "{series}/Conv_zscan_{fov:02d}.dax"},
 }
 fov_size = 246.528
