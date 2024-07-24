@@ -150,7 +150,7 @@ def rf_vs_triplets_scattterplot(plot_name,figsize = (2.2,2.2)):
     plt.text(0.6,0.95,f"$r^2$ = {r2:.2f}")
     plt.xlabel(metric_names["rf"])
     plt.ylabel(metric_names["triplets"])
-    save_plot(fig,plot_name,plots_path)
+    save_plot(fig,plot_name,plots_path,rasterize=True)
 
 if __name__ == "__main__":
     # Load data
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     min_characters_lineplot("min_characters_lineplot",figsize=(2.2,0))
     edit_rate_lineplot("log_edit_rate_lineplot",log = True,figsize = (3.1,2))
     edit_rate_lineplot("edit_rate_lineplot",log = False,figsize = (3,2))
-    rf_vs_triplets_scattterplot("rf_vs_triplets_scatterplot",figsize = (2.2,2.2))
+    rf_vs_triplets_scattterplot("rf_vs_triplets_scatterplot",figsize = (2,2))
     
     
 
