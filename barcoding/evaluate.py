@@ -16,7 +16,7 @@ sys.path.append(str(base_path))
 
 # Load source
 from src.config import threads
-from src.tree_utils import reconstruct_tree
+from src.tree_utils import reconstruct_tree, get_edit_frac, collapse_mutationless_edges
 from src.barcode_utils import get_barcode_clades
 
 def eval_fmi(param):
@@ -110,6 +110,24 @@ def fmi_vs_detection(threads = 30):
         results = pd.concat(results)
     results.to_csv(results_path / "fmi_vs_detection_rate.csv",index=False)
 
+def calculate_clone_stats():
+    """Calculate the number of cells, edit fraction, and detection rate for each clone."""
+    clone_stats = []
+    for clone in range(1,7):
+        tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
+        collapsed_tdata = collapse_mutationless_edges(tdata,copy = True)
+        branch_edit_frac = (len(collapsed_tdata.obst["tree"].edges) / len(tdata.obst["tree"].edges)) * 100
+        site_edit_frac = get_edit_frac(tdata.obsm["characters"]) * 100
+        detection_rate = (tdata.obsm["characters"] != -1).values.mean() * 100
+        clone_stats.append({"clone":clone,"n_cells":tdata.n_obs,"site_edit_frac":site_edit_frac,
+                            "branch_edit_frac":branch_edit_frac,
+                            "site_edit_frac":site_edit_frac,"detection_rate":detection_rate})
+    # Add fmi scores
+    fmi_scores = pd.read_csv(results_path / "clone_fmi.csv")
+    fmi_score = fmi_scores.query("solver == 'nj' & ~permute")[["clone","puro_fmi","blast_fmi"]]
+    clone_stats = pd.DataFrame(clone_stats).merge(fmi_score,on="clone")
+    clone_stats.to_csv(results_path / "clone_stats.csv",index=False)
+
 # Run simulations
 if __name__ == "__main__":
     print("Evaluating barcoded trees")
@@ -117,4 +135,6 @@ if __name__ == "__main__":
     print("Testing how the number of characters affects the FMI")
     #fmi_vs_characters(threads = threads)
     print("Testing how the detection rate affects the FMI")
-    fmi_vs_detection(threads = threads)
+    #fmi_vs_detection(threads = threads)
+    print("Calculating clone stats")
+    calculate_clone_stats()

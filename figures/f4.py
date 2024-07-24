@@ -27,6 +27,7 @@ render_plot(c, "C", barcoding_path / "clone_4_combined_clades.png", 3.5, 0)
 render_plot(c, "E", barcoding_path / "clone_fmi_violin.svg", 0, 4.3)
 render_plot(c, "F", barcoding_path / "clone_fmi_vs_characters_lineplot.svg", 2.1, 4.3)
 render_plot(c, "G", barcoding_path / "clone_fmi_vs_detection_lineplot.svg", 4.2, 4.3)
+render_plot(c, "H", barcoding_path / "lca_depth_ridgeplot.svg", 6.3, 4.3)
 
 
 

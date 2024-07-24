@@ -19,12 +19,17 @@ pdfmetrics.registerFont(TTFont('Arial-Bold', 'Arial_Bold.ttf'))
 c.setFont('Arial-Bold', 14)
 
 # Render panels
-render_plot(c, "A", barcoding_path / "clone_1_combined_clades.png", 0, 0,y_offset=5)
-render_plot(c, "", barcoding_path / "clone_2_combined_clades.png", 5.2, 0,y_offset=5)
-render_plot(c, "", barcoding_path / "clone_5_combined_clades.png", 5.6, 5.7,y_offset=5)
-render_plot(c, "", barcoding_path / "clone_6_combined_clades.png", 4.8, 3.2,y_offset=5)
-render_plot(c, "", barcoding_path / "clone_3_combined_clades.png", 2.3, 5.2,y_offset=5)
-render_plot(c, "B", barcoding_path / "nj_vs_upgma_fmi_scatterplot.svg", 0, 8.4)
+render_plot(c, "A", barcoding_path / "clone_1_combined_clades.png", 0, 0,y_offset=20)
+render_plot(c, "", barcoding_path / "clone_2_combined_clades.png", 5.2, 0,y_offset=20)
+render_plot(c, "", barcoding_path / "clone_5_combined_clades.png", 5.8, 5.5,y_offset=20)
+render_plot(c, "", barcoding_path / "clone_6_combined_clades.png", 4.8, 3.2,y_offset=20)
+render_plot(c, "", barcoding_path / "clone_3_combined_clades.png", 2.5, 5,y_offset=20)
+render_plot(c, "B", barcoding_path / "nj_vs_upgma_fmi_scatterplot.svg", 0, 8,y_offset = 30)
+render_plot(c, "C", barcoding_path / "puro_distance_comparison_kdeplot.svg", 2, 8)
+render_plot(c, "", barcoding_path / "blast_distance_comparison_kdeplot.svg", 4, 8)
+render_plot(c, "D", barcoding_path / "ks_comparison_scatterplot.svg", 6.2, 8,y_offset = 30)
+
+
 
 # Save canvas
 c.save()

@@ -14,7 +14,7 @@ def get_root(tree):
 def get_leaves(tree):
     return [node for node in tree.nodes if tree.out_degree(node) == 0]
 
-def edit_frac(characters):
+def get_edit_frac(characters):
     return np.float64(np.apply_over_axes(np.sum,characters != 0,(0,1)).item()/
                       np.apply_over_axes(np.sum,~np.isnan(characters),(0,1)).item())
 
@@ -119,7 +119,7 @@ def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tre
         collapse_mutationless_edges(tdata,copy = False)
     return tdata
 
-def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = 1):
+def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = .05):
     if ax is None:
         ax = plt.gca()
     tdata.obs = tdata.obs.merge(tdata.obsm["characters"].astype(str),left_index=True,right_index=True)

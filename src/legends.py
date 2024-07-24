@@ -16,10 +16,10 @@ edit_legend = [mpatches.Rectangle((0, 0), 1, 1, color=color, label=label)
 edit_legend_with_other = [mpatches.Rectangle((0, 0), 1, 1, color=color, label=label)
                      for color, label in zip(list(edit_palette.values())[1:11],edit_labels)]
 
-barcode_legend = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='black', markersize=10, label='Blast BC'),
-                  plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='black', markersize=10, label='Puro BC')]
+barcode_legend = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='black', markersize=10, label='Blast'),
+                  plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='black', markersize=10, label='Puro')]
 
-barcoding_clone_legend = [mpatches.Rectangle((0, 0), 1, 1, color=color, label=label)
+barcoding_clone_legend = [mpatches.Rectangle((0, 0), .5, 1, color=color, label=label)
                     for color, label in zip(discrete_cmap[6], range(1,7))]
 
 def add_cbar(cbar_ax, cmap, ticks, label, ticklabels=None):

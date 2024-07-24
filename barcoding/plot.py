@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import scipy as sp
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.ticker as ticker
@@ -29,12 +30,32 @@ plt.style.use(base_path / 'plot.mplstyle')
 from src.config import colors,discrete_cmap,threads,site_names,edit_ids,edit_names
 from src.utils import save_plot
 from src.tree_utils import plot_grouped_characters
+from src.legends import barcode_legend,barcoding_clone_legend
 
 # Define constants
 metric_names = {"fmi":"Clone Barcode FMI"}
 param_names = {"characters":"Number of edit sites",
                "detection_rate":"Detection rate (%)"}
 
+## Data processing functions
+def sample_distances():
+    distances = []
+    for clone in range(1,7):
+        tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
+        pycea.tl.tree_distance(tdata,depth_key="time",sample_n = 10000)
+        clone_distances = pycea.tl.compare_distance(tdata,dist_keys = ["character","tree"])
+        clone_distances = clone_distances.query("obs1 != obs2").copy()
+        clone_distances["tree_distances"] = clone_distances["tree_distances"] * 8
+        for barcode in ["puro","blast"]:
+            clone_distances[f"{barcode}1"] = clone_distances["obs1"].map(tdata.obs[f"{barcode}_clade"])
+            clone_distances[f"{barcode}2"] = clone_distances["obs2"].map(tdata.obs[f"{barcode}_clade"])
+            clone_distances[f"{barcode}_same"] = clone_distances[f"{barcode}1"] == clone_distances[f"{barcode}2"]
+        clone_distances["clone"] = clone
+        distances.append(clone_distances)
+    distances = pd.concat(distances)
+    return distances
+
+## Plotting functions
 def site_edit_rates(plot_name):
     edit_counts = pd.read_csv(results_path / "tree_edit_counts.csv")
 
@@ -78,7 +99,7 @@ def clone_fmi_lineplot(plot_name,x,figsize = (2,2)):
 
     save_plot(fig, plot_name, plots_path)
 
-def nj_vs_upgma_fmi_scatterplot(plot_name,figsize = (2.5,2.5)):
+def nj_vs_upgma_fmi_scatterplot(plot_name,figsize = (2,2)):
 
     clone_fmi = pd.read_csv(results_path / "clone_fmi.csv")
     fmi_long = clone_fmi.query("~permute").melt(id_vars = ["clone","solver"],value_vars = ["blast_fmi","puro_fmi"])
@@ -89,10 +110,17 @@ def nj_vs_upgma_fmi_scatterplot(plot_name,figsize = (2.5,2.5)):
 
     sns.scatterplot(data = fmi_long,x = "nj",y = "upgma",markers = ["o","s"],legend=False,
                     hue = "clone",style = "Barcode",s = 40,palette = discrete_cmap[6]) 
-    plt.plot([.7,1],[.7,1],color = "black",linestyle = "--",zorder = 0)
+    plt.plot([.75,1],[.75,1],color = "black",linestyle = "--",zorder = 0)
     plt.xlabel("NJ barcode FMI")
     plt.ylabel("UPGMA barcode FMI")
-
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(.1))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(.1))
+    # Add legend
+    fig.legend(handles = barcoding_clone_legend,loc = "center",
+            bbox_to_anchor=(.35,-.12),ncol = 3,title = "Clone",columnspacing = .5,handletextpad = .2)
+    fig.legend(handles = barcode_legend,loc = "center",
+            bbox_to_anchor=(.8,-.12),ncol = 1,title = "Barcode",columnspacing = .5,handletextpad = .2)
+    save_plot(fig, plot_name, plots_path)
     save_plot(fig, plot_name, plots_path)
 
 def polar_tree_with_clades(plot_name,clone,barcode,title = None,scale = False,figsize = (5,5)):
@@ -112,31 +140,161 @@ def polar_tree_with_clades(plot_name,clone,barcode,title = None,scale = False,fi
         pycea.pl.annotation(tdata,keys = ["blast"],gap = .02, palette = clade_palette)
     if title:
         ax.set_title(title) 
-    save_plot(fig,plot_name,plots_path,transparent=True)
+    save_plot(fig,plot_name,plots_path,transparent=True,rasterize=True)
 
 def tree_with_characters(plot_name,clone,figsize = (5,5)):
     tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
     fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
     pycea.pl.branches(tdata, depth_key = "time",ax = ax,linewidth=.3)
     plot_grouped_characters(tdata,ax = ax)
-    save_plot(fig,plot_name,plots_path)
+    save_plot(fig,plot_name,plots_path,rasterize=True)
 
-# Generate plots
+def clone_stats_table(plot_name,figsize = (4,2)):
+    # Load data
+    clone_stats = pd.read_csv(results_path / "clone_stats.csv")
+    clone_stats = clone_stats.round(2)
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")  # set size frame
+    ax.axis('tight')
+    ax.axis('off')
+    clone_stats.columns = clone_stats.columns.str.replace("_","\n")
+    tbl = ax.table(cellText=clone_stats.values, colLabels=clone_stats.columns, cellLoc='center', loc='center')
+    for i in range(len(clone_stats.columns)):
+        tbl[0, i].set_height(0.3)
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(10)
+    save_plot(fig,plot_name, plots_path)
+
+def distance_comparison_kdeplot(plot_name,distances,barcode,ylabel = True,figsize = (2.6,2.6)):
+    # get KS statistic
+    ks_statistics = {}
+    for metric in ["character","tree"]:
+        same_distances = distances.query(f"clone == {clone} & {barcode}_same")[f"{metric}_distances"]
+        diff_distances = distances.query(f"clone == {clone} & not {barcode}_same")[f"{metric}_distances"]
+        ks_statistics[metric] = sp.stats.ks_2samp(same_distances,diff_distances).statistic
+    # plot
+    sampled_distances = distances.groupby(f"{barcode}_same").sample(1000)
+    g = sns.JointGrid(data=sampled_distances, x="character_distances", y="tree_distances", hue=f"{barcode}_same", marginal_ticks=True, 
+                    height=figsize[0], ratio=2, space=0.5, palette={True:colors[1],False:colors[2]})
+    g.plot_joint(sns.kdeplot, common_norm=False, common_grid=True,linewidths=.7,legend = False,bw_adjust=1.5,thresh = .1)
+    g.plot_marginals(sns.histplot, common_norm=False, linewidth=.5,stat = "probability",bins = 20,alpha = .7)
+    g.ax_joint.xaxis.set_major_locator(ticker.MultipleLocator(.5))
+    g.ax_joint.yaxis.set_major_locator(ticker.MultipleLocator(4))
+    g.ax_joint.set_xlabel("Pairwise character\ndistance (hamming)");
+    if ylabel:
+        g.ax_joint.set_ylabel("Pairwise phylogentic\ndistance (days)");
+    else:
+        g.ax_joint.set_ylabel("")
+    g.ax_joint.set_xlim(0, 1.7)
+    g.ax_joint.set_ylim(0, 18)
+    g.ax_marg_x.set_ylim(0, 0.25)
+    g.ax_marg_x.yaxis.set_major_locator(ticker.MultipleLocator(.1))
+    # add KS statistic
+    g.ax_joint.text(1.7, 25, f"KS = {ks_statistics['character']:.2f}", fontsize=8)
+    g.ax_joint.text(2, 19, f"KS = {ks_statistics['tree']:.2f}", fontsize=8)
+    # add legend
+    handles = [mpatches.Patch(color=colors[1], label='BC match'), 
+            mpatches.Patch(color=colors[2], label='BC mismatch')]
+    g.ax_joint.legend(handles=handles, loc='upper center', fontsize=10,ncol = 2,
+                    bbox_to_anchor=(.55, -.5),columnspacing = .5)
+    save_plot(g.figure, plot_name, plots_path, transparent=True)
+
+def ks_comparison_scatterplot(plot_name,distances,figsize = (2.5,2.5)):
+    # Calculate KS statistics
+    ks_statistics = []
+    for clone in range(1,7):
+        for barcode in ["puro","blast"]:
+            for metric in ["tree","character"]:
+                same_distances = distances.query(f"clone == {clone} & {barcode}_same")[f"{metric}_distances"]
+                diff_distances = distances.query(f"clone == {clone} & not {barcode}_same")[f"{metric}_distances"]
+                ks_statistic = sp.stats.ks_2samp(same_distances,diff_distances).statistic
+                ks_statistics.append({"clone":clone,"barcode":barcode,"metric":metric,"ks_statistic":ks_statistic})
+    ks_statistics = pd.DataFrame(ks_statistics)
+    ks_statistics = ks_statistics.pivot(index=["clone","barcode"],columns="metric",values="ks_statistic")
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    sns.scatterplot(data=ks_statistics,x="character",y="tree",hue="clone",style="barcode",
+                    markers = ["o","s"],s = 40,legend = False,palette = discrete_cmap[6])
+    plt.plot([.75,1],[.75,1],color="black",linestyle="--")
+    plt.xlabel("Phylogenetic distance (KS statistic)")
+    plt.ylabel("Character distance (KS statistic)")
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(.1))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(.1))
+    # Add legend
+    fig.legend(handles = barcoding_clone_legend,loc = "center",
+            bbox_to_anchor=(.4,-.12),ncol = 3,title = "Clone",columnspacing = .5,handletextpad = .2)
+    fig.legend(handles = barcode_legend,loc = "center",
+            bbox_to_anchor=(.8,-.12),ncol = 1,title = "Barcode",columnspacing = .5,handletextpad = .2)
+    save_plot(fig, plot_name, plots_path)
+
+def lca_depth_ridgeplot(plot_name,figsize):
+    # Get LCA depths
+    lca_depths = []
+    for clone in range(1,7):
+        tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
+        for node in tdata.obst["tree"].nodes:
+            node_attrs = tdata.obst["tree"].nodes[node]
+            if "puro_lca" in node_attrs:
+                lca_depths.append({"time":node_attrs["time"],"barcode":"puro","clone":clone})
+            if "blast_lca" in node_attrs:
+                lca_depths.append({"time":node_attrs["time"],"barcode":"blast","clone":clone})
+    lca_depths = pd.DataFrame(lca_depths)
+    lca_depths["time"] = lca_depths["time"] * 16
+    # Plot
+    lca_depths = lca_depths.sort_values("barcode")
+    fig, axes = plt.subplots(6, 1, figsize=figsize,dpi = 600)  # set size frame
+    fig.subplots_adjust(hspace=-.5)
+    for i in range(1,7): 
+        ax = axes[i-1]   
+        sns.kdeplot(data = lca_depths.query("clone == @i"),hue = "barcode",x = "time",bw_adjust=1,alpha = .7,
+                    ax = ax,common_norm = False,legend=False,palette = {"puro":colors[1],"blast":colors[2]},fill = True)
+        ax.patch.set_alpha(0)
+        ax.set_yticks([])
+        ax.set_yticklabels([])
+        ax.set_ylabel("")
+        if i != 6:
+            ax.set_xticks([])
+            ax.set_xlabel("")
+        else:
+            ax.xaxis.set_major_locator(ticker.MultipleLocator(4))
+            ax.set_xlabel("Inferred LCA time (days)")
+        if i == 4:
+            ax.set_ylabel("Barcode clade density")
+        ax.set_xlim(0, 16)
+        ax.set_ylim(0, .6)
+        ax.text(11, .05, f"Clone {i}", fontsize=10)
+        ax.axvline(5, color=colors[1], linestyle="--", linewidth=1)
+        ax.axvline(7, color=colors[2], linestyle="--", linewidth=1)
+    # Add legeng
+    handles = [mpatches.Patch(color=colors[1], label='Puro BC'), 
+                mpatches.Patch(color=colors[2], label='Blast BC')]
+    fig.legend(handles=handles, loc='center', fontsize=10,ncol = 2,
+                bbox_to_anchor=(.5, -.16),columnspacing = .5)
+    save_plot(fig,plot_name, plots_path)
+
+## Generate plots
 if __name__ == "__main__":
-    #site_edit_rates("site_edit_rates")
-    #fmi_violin("fmi_violin")
+    # Clone stats
+    clone_stats_table("clone_stats_table")
     # FMI
     clone_fmi_violin("clone_fmi_violin",figsize = (2,2))
-    nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2,2))
+    nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2.2,2.2))
     clone_fmi_lineplot("clone_fmi_vs_characters_lineplot",x = "characters",figsize = (2,2))
     clone_fmi_lineplot("clone_fmi_vs_detection_lineplot",x = "detection_rate",figsize = (2,2))
+    # Distance comparison
+    distances = sample_distances()
+    distance_comparison_kdeplot("puro_distance_comparison_kdeplot",distances,"puro",figsize = (2.8,2.8))
+    distance_comparison_kdeplot("blast_distance_comparison_kdeplot",distances,"blast",figsize = (2.8,2.8))
+    ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
+    # LCA depths
+    lca_depth_ridgeplot("lca_depth_ridgeplot",(2,2))
     # Clone trees
-    #for clone in range(1,7):
-    #    polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
-    #        title = f"Clone {clone}",scale = True,figsize = (3.7,3.7))
+    for clone in range(1,7):
+        polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
+            scale = True,figsize = (3.5,3.5))
     # Example clone
     example = 4
-    #polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
-    #polar_tree_with_clades(f"clone_{example}_blast_clades",example,"blast",figsize = (4,4))
-    #polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
-    #tree_with_characters(f"clone_{example}_with_characters",example,figsize = (3,2))
+    polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
+    polar_tree_with_clades(f"clone_{example}_blast_clades",example,"blast",figsize = (4,4))
+    polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
+    tree_with_characters(f"clone_{example}_with_characters",example,figsize = (3,2))
