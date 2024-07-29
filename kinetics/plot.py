@@ -155,7 +155,7 @@ def relative_rate_violin(plot_name,figsize = (1,2)):
 if __name__ == "__main__":
     for cell_line in ["4T1","B16F10"]:
         for site in site_names.keys():
-            edit_frac_lineplot(f"{cell_line}_{site}_mean_edit_frac",site,cell_line=cell_line,agg = "mean",min_cells=20)
+            edit_frac_lineplot(f"{cell_line}_{site}_mean_edit_frac",site,cell_line=cell_line,agg = "mean",min_cells=20,figsize = (2.8,2))
             speed_edit_frac_heatmap(f"{cell_line}_{site}_edit_frac_vs_speed",site,cell_line=cell_line,min_cells=20)
     edit_rate_scatterplot("variant_log_rate_scatterplot",log=True,figsize = (2.5,2.5))
     edit_rate_scatterplot("variant_rate_scatterplot",log=False,figsize = (2.5,2.5))
