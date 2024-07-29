@@ -146,8 +146,9 @@ def relative_rate_violin(plot_name,figsize = (1,2)):
     plt.xlabel("Protospacer\nVariants")
     plt.ylabel("B16F10 / 4T1 (edits/day)")
     # Add mean line
-    mean_value = edit_rates.query("relative_rate < 10")["relative_rate"].mean()
-    plt.axhline(mean_value, color='black', linestyle='--', linewidth=1.5)
+    median_value = edit_rates.query("relative_rate < 10")["relative_rate"].median()
+    print("Median relative rate:",median_value)
+    plt.axhline(median_value, color='black', linestyle='--', linewidth=1.5)
     save_plot(fig,plot_name,plots_path)
 
 # Generate plots
