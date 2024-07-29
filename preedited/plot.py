@@ -42,7 +42,7 @@ experiment_names = {"merfish_invitro":"MERFISH in vitro",
                     "MERFISH in vivo","merfish_zombie":
                     "Zombie MERFISH in vitro"}
 experiment_fovs = {"merfish_invitro":[-50,60,125,235],
-                   "merfish_invivo":[1070,2585,1270,2785],
+                   "merfish_invivo":[840,2590,1040,2790], #[1070,2585,1270,2785] [1740,2130,1940,2330]
                    "merfish_zombie":[-300,140,-100,340]}
 experiment_cells = {"merfish_invitro":[26,141,46.5,166]}    
 
@@ -551,7 +551,7 @@ def decoding_example_heatmaps(figsize = (2.1,2.1)):
     save_plot(fig, "decoding_example_intensities",plots_path)
     # plot weight matrix
     fig, ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
-    blue_red_cmap = mcolors.LinearSegmentedColormap.from_list('three_color_cmap', ['#1874CD','white', '#CD2626'])
+    blue_red_cmap = mcolors.LinearSegmentedColormap.from_list('three_color_cmap', ['#1874CD','white', '#009E73'])
     sns.heatmap(weights,annot=True,cmap=blue_red_cmap,center=0,ax = ax,annot_kws={"size": 8},cbar=False,fmt=".1f",square=True)
     plt.xticks([])
     plt.yticks([])
@@ -576,7 +576,8 @@ if __name__ == "__main__":
     for experiment in ["merfish_invitro","merfish_invivo","merfish_zombie"]:
         intensity_vs_probability_scatterplot(f"{experiment}_intensity_vs_probability",experiment,figsize = (2.8,2.8))
         cell_masks(f"{experiment}_slide",experiment,highlight=experiment_fovs[experiment],figsize = (3.5,3.5))
-        image_with_masks(f"{experiment}_fov",experiment,experiment_fovs[experiment],figsize = (2.5,2.5))
+        fov_figsize = (3.5,3.5) if experiment == "merfish_invivo" else (2.5,2.5)
+        image_with_masks(f"{experiment}_fov",experiment,experiment_fovs[experiment],figsize = fov_figsize)
     # MERFISH invitro
     experiment = "merfish_invitro"
     decoder_accuracy_barplot(f"{experiment}_accuracy_barplot",experiment,figsize=(1.5, 1.7))

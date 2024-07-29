@@ -19,11 +19,12 @@ pdfmetrics.registerFont(TTFont('Arial-Bold', 'Arial_Bold.ttf'))
 c.setFont('Arial-Bold', 14)
 
 # Render panels
-render_plot(c, "A", preedited_path / "merfish_invivo_slide.svg", 0, 0, x_offset=25,y_offset=10,scale = .85)
-render_plot(c, "B", preedited_path / "merfish_invivo_fov.svg", 2.8, 0, x_offset=30,y_offset=10,scale = 1.2)
-render_plot(c, "C", preedited_path / "merfish_invivo_integration_confusion_matrix.svg", 6.2, 0, x_offset=30,y_offset=15)
-render_plot(c, "D", preedited_path / "merfish_invivo_detection_stats_barplot.svg", 6.2, 1.2, x_offset=25)
-render_plot(c, "E", preedited_path / "merfish_invivo_edit_confusion_matrix.svg", 0, 3.2, x_offset=30,y_offset=15)
+render_plot(c, "A", preedited_path / "merfish_invivo_slide.svg", 0, 0, x_offset=25,y_offset=10)
+render_plot(c, "", preedited_path / "merfish_invivo_fov.svg", 3.5, 0, x_offset=30,y_offset=10)
+render_plot(c, "B", preedited_path / "merfish_invivo_characters.svg", 0, 3.6, x_offset=30,y_offset=10)
+render_plot(c, "C", preedited_path / "merfish_invivo_integration_confusion_matrix.svg", 4.2, 3.6, x_offset=30,y_offset=15)
+render_plot(c, "D", preedited_path / "merfish_invivo_detection_stats_barplot.svg", 4.2, 4.7, x_offset=25)
+render_plot(c, "E", preedited_path / "merfish_invivo_edit_confusion_matrix.svg", 0, 6.6, x_offset=30,y_offset=15)
 
 
 
