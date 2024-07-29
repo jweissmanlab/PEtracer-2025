@@ -49,7 +49,7 @@ def array_installation_barplot(plot_name,edit_fracs,site,version,figsize):
         array_fracs = edit_fracs.query(f"site == '{site}' & version == '{version}' & array == 'array{i}'").copy()
         array_fracs = array_fracs.sort_values("position")
         entropy = normalized_entropy(array_fracs.groupby("edit")["edit_frac"].mean().values/100)
-        sns.barplot(data = array_fracs,x = "edit",y = "edit_frac",ax = ax,errorbar=None,color = site_colors[site])
+        sns.barplot(data = array_fracs,x = "edit",y = "edit_frac",ax = ax,errorbar=None,color = site_colors[site], edgecolor='black', linewidth=0.5)
         sns.scatterplot(data = array_fracs,x = "edit",y = "edit_frac",ax = ax,color = "black",s=5,linewidth=0)
         ax.text(0.5,0.95,f"$H_{{norm}}$={entropy:.2f}",transform=ax.transAxes,ha="center",va="center")
         for item in ax.get_xticklabels():
@@ -74,7 +74,7 @@ def final_array_installation_barplot(plot_name,edit_fracs,site,figsize = (1.3,1.
     site_edit_frac = site_edit_frac.sort_values("position")
     entropy = normalized_entropy(site_edit_frac.groupby("edit")["edit_frac"].mean().values/100)
     sns.barplot(data=site_edit_frac, x="edit", y='edit_frac',hue = "position",palette=discrete_cmap[8],
-        errorbar=None,saturation = 1,legend=False)
+        errorbar=None,saturation = 1,legend=False, edgecolor='black', linewidth=0.5)
     sns.scatterplot(data=site_edit_frac,
                     x='edit', y='edit_frac',color="black",s=5,linewidth=0)
     plt.text(0.5, 0.95, f"$H_{{norm}}$ = {entropy:.2f}", ha='center', va='center', transform=ax.transAxes)
