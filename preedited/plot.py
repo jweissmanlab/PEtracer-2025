@@ -499,6 +499,7 @@ def decoding_vs_intensity_lineplot(plot_name,experiments,figsize = (1.7,1.7)):
     ax.set_xscale("log")
     ax.set_xlabel("Spots intensity")
     ax.set_ylabel("intBCs decoded (%)")
+    save_plot(fig,plot_name,plots_path)
 
 def decoder_accuracy_barplot(plot_name,experiment,figsize=(2.5, 2.5)):
     '''Plot decoder accuracy barplot for preedited experiment'''
@@ -590,5 +591,3 @@ if __name__ == "__main__":
     # 10x invitro
     experiment = "10x_invitro"
     umi_histogram(f"{experiment}_umi_histplot",experiment,figsize = (2.5,2.5))
-            
-
