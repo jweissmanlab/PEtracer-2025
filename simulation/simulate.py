@@ -267,8 +267,13 @@ def parameter_sweep_simulation(threads = 30):
         results = pd.concat(results)
     results.to_csv(results_path / "parameter_sweep_simulation.csv",index = False)
 
+def get_indel_hnorm():
+    indel_dist = pd.read_csv(data_path / "indel_distribution.tsv", index_col=0,sep="\t")
+    return normalized_entropy(indel_dist["probability"])
+
 # Run simulations
 if __name__ == "__main__":
+    print("Indel distribution normalized entropy: ",get_indel_hnorm())
     print("Simulating trees varying the number of states and the entropy")
     #states_vs_entropy_simulation(threads = threads)
     print("Simulating trees varying the number of states and the edit fraction")
@@ -278,4 +283,4 @@ if __name__ == "__main__":
     print("Simulating minimum number of characters for large trees")
     #min_characters_simulation()
     print("Simulating optimal edit rate vs experiment length")
-    edit_rate_simulation()
+    #edit_rate_simulation()
