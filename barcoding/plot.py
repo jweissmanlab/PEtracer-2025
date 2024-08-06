@@ -42,7 +42,7 @@ def sample_distances():
     distances = []
     for clone in range(1,7):
         tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
-        pycea.tl.tree_distance(tdata,depth_key="time",sample_n = 10000)
+        pycea.tl.tree_distance(tdata,depth_key="time",sample_n = 10000,random_state=0)
         clone_distances = pycea.tl.compare_distance(tdata,dist_keys = ["character","tree"])
         clone_distances = clone_distances.query("obs1 != obs2").copy()
         clone_distances["tree_distances"] = clone_distances["tree_distances"] * 8
@@ -165,17 +165,21 @@ def clone_stats_table(plot_name,figsize = (4,2)):
     tbl.set_fontsize(10)
     save_plot(fig,plot_name, plots_path)
 
-def distance_comparison_kdeplot(plot_name,distances,barcode,ylabel = True,figsize = (2.6,2.6)):
+def distance_comparison_kdeplot(plot_name,distances,barcode,ylabel = True,clone = None,figsize = (2.6,2.6)):
     # get KS statistic
     ks_statistics = {}
     for metric in ["character","tree"]:
-        same_distances = distances.query(f"clone == {clone} & {barcode}_same")[f"{metric}_distances"]
-        diff_distances = distances.query(f"clone == {clone} & not {barcode}_same")[f"{metric}_distances"]
+        if clone is not None:
+            same_distances = distances.query(f"clone == {clone} & {barcode}_same")[f"{metric}_distances"]
+            diff_distances = distances.query(f"clone == {clone} & not {barcode}_same")[f"{metric}_distances"]
+        else:
+            same_distances = distances.query(f"{barcode}_same")[f"{metric}_distances"]
+            diff_distances = distances.query(f"not {barcode}_same")[f"{metric}_distances"]
         ks_statistics[metric] = sp.stats.ks_2samp(same_distances,diff_distances).statistic
     # plot
     sampled_distances = distances.groupby(f"{barcode}_same").sample(1000)
     g = sns.JointGrid(data=sampled_distances, x="character_distances", y="tree_distances", hue=f"{barcode}_same", marginal_ticks=True, 
-                    height=figsize[0], ratio=2, space=0.5, palette={True:colors[1],False:colors[2]})
+                    height=figsize[0], ratio=2, space=0.5, palette={True:colors[2],False:"darkgray"})
     g.plot_joint(sns.kdeplot, common_norm=False, common_grid=True,linewidths=.7,legend = False,bw_adjust=1.5,thresh = .1)
     g.plot_marginals(sns.histplot, common_norm=False, linewidth=.5,stat = "probability",bins = 20,alpha = .7)
     g.ax_joint.xaxis.set_major_locator(ticker.MultipleLocator(.5))
@@ -193,8 +197,8 @@ def distance_comparison_kdeplot(plot_name,distances,barcode,ylabel = True,figsiz
     g.ax_joint.text(1.7, 25, f"KS = {ks_statistics['character']:.2f}", fontsize=8)
     g.ax_joint.text(2, 19, f"KS = {ks_statistics['tree']:.2f}", fontsize=8)
     # add legend
-    handles = [mpatches.Patch(color=colors[1], label='BC match'), 
-            mpatches.Patch(color=colors[2], label='BC mismatch')]
+    handles = [mpatches.Patch(color=colors[2], label='BC match'), 
+            mpatches.Patch(color="darkgray", label='BC mismatch')]
     g.ax_joint.legend(handles=handles, loc='upper center', fontsize=10,ncol = 2,
                     bbox_to_anchor=(.55, -.5),columnspacing = .5)
     save_plot(g.figure, plot_name, plots_path, transparent=True)
@@ -287,6 +291,7 @@ def edit_fraction_stacked_barplot(plot_name,figsize=(1,2)):
     # Plot
     fig, ax = plt.subplots(figsize=figsize,dpi=600,layout = "constrained")
     edit_fracs.plot(kind='bar', stacked=True,color = [edit_palette[str(i)] for i in edit_fracs.columns],ax = ax,width = .9)
+    edit_fracs.to_csv(results_path / "overall_edit_fracs.csv")
     plt.legend().remove()
     plt.xlabel("Edit site")
     plt.ylabel("Fraction of LMs (%)")
@@ -307,8 +312,10 @@ if __name__ == "__main__":
     clone_fmi_lineplot("clone_fmi_vs_detection_lineplot",x = "detection_rate",figsize = (2,2))
     # Distance comparison
     distances = sample_distances()
-    distance_comparison_kdeplot("puro_distance_comparison_kdeplot",distances,"puro",figsize = (2.8,2.8))
-    distance_comparison_kdeplot("blast_distance_comparison_kdeplot",distances,"blast",figsize = (2.8,2.8))
+    for barcode in ["puro","blast"]:
+        distance_comparison_kdeplot("puro_distance_comparison_kdeplot",distances,barcode,figsize = (2.8,2.8))
+        distance_comparison_kdeplot("clone_1_puro_distance_comparison_kdeplot",distances,barcode,clone = 1,figsize = (2.8,2.8))
+        distance_comparison_kdeplot("clone_4_puro_distance_comparison_kdeplot",distances,barcode,clone = 1,figsize = (2.8,2.8))
     ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
     # LCA depths
     lca_depth_ridgeplot("lca_depth_ridgeplot",(2.5,2))

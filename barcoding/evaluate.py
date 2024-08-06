@@ -110,6 +110,14 @@ def fmi_vs_detection(threads = 30):
         results = pd.concat(results)
     results.to_csv(results_path / "fmi_vs_detection_rate.csv",index=False)
 
+def get_mean_barcode_time(tdata,barcode):
+    times = []
+    for node in tdata.obst["tree"].nodes:
+        node_attrs = tdata.obst["tree"].nodes[node]
+        if f"{barcode}_lca" in node_attrs:
+            times.append(node_attrs["time"])
+    return np.mean(times) * 16
+
 def calculate_clone_stats():
     """Calculate the number of cells, edit fraction, and detection rate for each clone."""
     clone_stats = []
@@ -119,9 +127,12 @@ def calculate_clone_stats():
         branch_edit_frac = (len(collapsed_tdata.obst["tree"].edges) / len(tdata.obst["tree"].edges)) * 100
         site_edit_frac = get_edit_frac(tdata.obsm["characters"]) * 100
         detection_rate = (tdata.obsm["characters"] != -1).values.mean() * 100
+        puro_mean_time = get_mean_barcode_time(tdata,"puro")
+        blast_mean_time = get_mean_barcode_time(tdata,"blast")
         clone_stats.append({"clone":clone,"n_cells":tdata.n_obs,"site_edit_frac":site_edit_frac,
                             "branch_edit_frac":branch_edit_frac,
-                            "site_edit_frac":site_edit_frac,"detection_rate":detection_rate})
+                            "site_edit_frac":site_edit_frac,"detection_rate":detection_rate,
+                            "puro_mean_time":puro_mean_time,"blast_mean_time":blast_mean_time})
     # Add fmi scores
     fmi_scores = pd.read_csv(results_path / "clone_fmi.csv")
     fmi_score = fmi_scores.query("solver == 'nj' & ~permute")[["clone","puro_fmi","blast_fmi"]]
