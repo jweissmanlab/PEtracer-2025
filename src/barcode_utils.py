@@ -40,7 +40,7 @@ def cluster_barcodes(barcodes,min_size = 2,min_count = 10, plot = False,plot_tit
         sns.heatmap(barcode_counts.loc[cell_to_cluster.cellBC,int_order],cmap = sequential_cmap,vmax = 50,
                     yticklabels=False,xticklabels=False,ax = axes)
         plt.title(plot_title)
-    return cell_to_cluster
+    return cell_to_cluster, barcode_counts.loc[:,int_order]
 
 def get_barcode_clades(tdata, barcode, key = None):
     """Get clades that maximize the FMI for a given barcode"""

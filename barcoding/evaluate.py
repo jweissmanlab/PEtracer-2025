@@ -5,6 +5,7 @@ import pandas as pd
 import multiprocessing as mp
 from itertools import product
 import treedata as td
+import pycea
 from pathlib import Path
 from tqdm.auto import tqdm
 
@@ -43,7 +44,7 @@ def eval_fmi(param):
         tdata.obs["blast"] = np.random.permutation(tdata.obs["blast"])
         tdata.obs["puro"] = np.random.permutation(tdata.obs["puro"])
     # Reconstruct tree
-    reconstruct_tree(tdata,solver = param["solver"],reconstruct_characters=False,estimate_lengths=False)
+    reconstruct_tree(tdata,solver = param["solver"],reconstruct_characters=True,estimate_lengths=False,collapse_edges=True)
     # Get barcode FMI
     puro_clades = get_barcode_clades(tdata,"puro")
     blast_clades = get_barcode_clades(tdata,"blast")
@@ -123,14 +124,14 @@ def calculate_clone_stats():
     clone_stats = []
     for clone in range(1,7):
         tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
-        collapsed_tdata = collapse_mutationless_edges(tdata,copy = True)
-        branch_edit_frac = (len(collapsed_tdata.obst["tree"].edges) / len(tdata.obst["tree"].edges)) * 100
+        pycea.pp.add_depth(tdata)
+        leaf_depth = pycea.utils.get_keyed_leaf_data(tdata,"depth")
         site_edit_frac = get_edit_frac(tdata.obsm["characters"]) * 100
         detection_rate = (tdata.obsm["characters"] != -1).values.mean() * 100
         puro_mean_time = get_mean_barcode_time(tdata,"puro")
         blast_mean_time = get_mean_barcode_time(tdata,"blast")
         clone_stats.append({"clone":clone,"n_cells":tdata.n_obs,"site_edit_frac":site_edit_frac,
-                            "branch_edit_frac":branch_edit_frac,
+                            "avg_depth":np.mean(leaf_depth),
                             "site_edit_frac":site_edit_frac,"detection_rate":detection_rate,
                             "puro_mean_time":puro_mean_time,"blast_mean_time":blast_mean_time})
     # Add fmi scores
@@ -142,7 +143,7 @@ def calculate_clone_stats():
 # Run simulations
 if __name__ == "__main__":
     print("Evaluating barcoded trees")
-    #clone_fmi((threads = threads)
+    #clone_fmi(threads = threads)
     print("Testing how the number of characters affects the FMI")
     #fmi_vs_characters(threads = threads)
     print("Testing how the detection rate affects the FMI")

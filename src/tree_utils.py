@@ -11,14 +11,16 @@ from .config import edit_ids, edit_palette
 def get_root(tree):
     return [node for node in tree.nodes if tree.in_degree(node) == 0][0]
 
-def get_leaves(tree):
-    return [node for node in tree.nodes if tree.out_degree(node) == 0]
+def get_leaves(tree: nx.DiGraph):
+    """Finds the leaves of a tree"""
+    return [node for node in nx.dfs_postorder_nodes(tree, get_root(tree)) if tree.out_degree(node) == 0]
 
 def get_edit_frac(characters):
     return np.float64(np.apply_over_axes(np.sum,characters != 0,(0,1)).item()/
                       np.apply_over_axes(np.sum,~np.isnan(characters),(0,1)).item())
 
 def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id = 9,order = None,index = "cellBC"):
+    """Converts allele table to character matrix"""
     characters = alleles.copy()
     if isinstance(index,str):
         index = [index]
@@ -45,12 +47,13 @@ def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id =
     characters.columns = ['{}-{}'.format(intID, site) for intID, site in characters.columns]
     return characters
 
-def reconstruct_ancestral_characters(tdata,tree = "tree",key = "characters",copy = True):
+def reconstruct_ancestral_characters(tdata,tree = "tree",key = "characters",edit_cost = .4,copy = True):
+    """Reconstructs ancestral characters using Sankoff algorithm"""
     tree_key = tree
     if copy:
         tdata = tdata.copy()
     costs = np.ones(shape = (10,10),dtype=float)
-    costs[0,:] = .4
+    costs[0,:] = edit_cost
     np.fill_diagonal(costs,0)
     costs = pd.DataFrame(costs,index = range(0,10),columns = range(0,10))
     pycea.tl.ancestral_states(tdata,keys = key,method = "sankoff",costs = costs,missing_state=-1,tree = tree_key)
@@ -58,6 +61,7 @@ def reconstruct_ancestral_characters(tdata,tree = "tree",key = "characters",copy
         return tdata
     
 def estimate_branch_lengths(tdata,tree = "tree",key = "characters",copy = True):
+    """Estimates branch lengths using IIDExponentialMLE"""
     tree_key = tree
     if copy:
         tdata = tdata.copy()
@@ -79,6 +83,7 @@ def estimate_branch_lengths(tdata,tree = "tree",key = "characters",copy = True):
         return tdata
     
 def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = True):
+    """Collapses edges with no mutations"""
     tree_key = tree
     if copy:
         tdata = tdata.copy()
@@ -98,6 +103,7 @@ def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = Tr
 
 def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tree",estimate_lengths = True,
                      reconstruct_characters = True,collapse_edges = False):
+    """Reconstructs tree using Cassiopeia"""
     solvers = {"nj":cas.solver.NeighborJoiningSolver(cas.solver.dissimilarity.weighted_hamming_distance,
                                                  add_root=True,fast = True),
            "upgma":cas.solver.UPGMASolver(cas.solver.dissimilarity.weighted_hamming_distance,fast = True),
@@ -109,8 +115,8 @@ def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tre
     for node in tree.nodes:
         del tree.nodes[node]["character_states"]
     tdata.obst[tree_added] = tree
-    if solver != "greedy":
-        tdata.obsp["character_distances"] = cas_tree.get_dissimilarity_map().loc[tdata.obs_names,tdata.obs_names]
+    #if solver != "greedy":
+    #    tdata.obsp["character_distances"] = cas_tree.get_dissimilarity_map().loc[tdata.obs_names,tdata.obs_names]
     if reconstruct_characters:
         reconstruct_ancestral_characters(tdata,copy = False)
     if estimate_lengths:
@@ -120,6 +126,7 @@ def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tre
     return tdata
 
 def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = .05):
+    """Plot allele table grouped by integration"""
     if ax is None:
         ax = plt.gca()
     tdata.obs = tdata.obs.merge(tdata.obsm["characters"].astype(str),left_index=True,right_index=True)
@@ -131,3 +138,19 @@ def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = .0
                             label = label,width=width,gap = gap,palette = edit_palette,ax = ax)
     tdata.obs = tdata.obs.drop(columns = tdata.obsm["characters"].columns)
     ax.tick_params(axis='x', pad=0)
+
+def hamming_distance(arr1, arr2):
+    valid_mask = (arr1 != -1) & (arr2 != -1)
+    hamming_distance = 0
+    for x, y in zip(arr1[valid_mask], arr2[valid_mask]):
+        if x == y:
+            pass
+        elif x == 0 or y == 0:
+            hamming_distance += 1
+        else:
+            hamming_distance += 2
+    num_valid_comparisons = np.sum(valid_mask)
+    if num_valid_comparisons == 0:
+        return 0
+    normalized_distance = hamming_distance / num_valid_comparisons
+    return normalized_distance

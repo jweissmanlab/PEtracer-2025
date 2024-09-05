@@ -27,9 +27,9 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
-from src.config import colors,discrete_cmap,threads,site_names,edit_ids,edit_names,site_ids,edit_palette
+from src.config import colors,discrete_cmap,site_names,edit_ids,site_ids,edit_palette,sequential_cmap
 from src.utils import save_plot
-from src.tree_utils import plot_grouped_characters
+from src.tree_utils import plot_grouped_characters,hamming_distance, get_leaves
 from src.legends import barcode_legend,barcoding_clone_legend
 
 # Define constants
@@ -43,6 +43,7 @@ def sample_distances():
     for clone in range(1,7):
         tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
         pycea.tl.tree_distance(tdata,depth_key="time",sample_n = 10000,random_state=0)
+        pycea.tl.distance(tdata,"characters",connect_key = "tree",metric = hamming_distance,key_added = "character")
         clone_distances = pycea.tl.compare_distance(tdata,dist_keys = ["character","tree"])
         clone_distances = clone_distances.query("obs1 != obs2").copy()
         clone_distances["tree_distances"] = clone_distances["tree_distances"] * 8
@@ -54,6 +55,14 @@ def sample_distances():
         distances.append(clone_distances)
     distances = pd.concat(distances)
     return distances
+
+def sort_barcode_columns(tdata):
+    for barcode in ["puro","blast"]:
+        barcode_counts = tdata[get_leaves(tdata.obst["tree"])].obsm[f"{barcode}_counts"]
+        row_indices = np.arange(barcode_counts.shape[0])
+        center_of_mass = (barcode_counts.values * row_indices[:, np.newaxis]).sum(axis=0) / barcode_counts.sum(axis=0)
+        sorted_columns = barcode_counts.columns[np.argsort(center_of_mass)]
+        tdata.obsm[f"{barcode}_counts"] = tdata.obsm[f"{barcode}_counts"].loc[:,reversed(sorted_columns)]
 
 ## Plotting functions
 def site_edit_rates(plot_name):
@@ -300,6 +309,24 @@ def edit_fraction_stacked_barplot(plot_name,figsize=(1,2)):
     ax.yaxis.set_major_locator(ticker.MultipleLocator(25))
     save_plot(fig, "edit_fraction_stacked_barplot", plots_path)
 
+def tree_with_barcodes(plot_name,clone,figsize = (7.5,1.8)):
+    clade_palette = {str(clade):color for clade, color in enumerate(colors[1:21]*100)}
+    tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
+    sort_barcode_columns(tdata)
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    pycea.pl.branches(tdata, depth_key = "time",ax = ax,linewidth=.1)
+    characters_width = 3/tdata.obsm["characters"].shape[1]
+    plot_grouped_characters(tdata,ax = ax,width = characters_width)
+    pycea.pl.annotation(tdata,keys = ["puro"],ax = ax,palette = clade_palette, width = .2,gap = .2,label = "")
+    puro_width = 3/tdata.obsm["puro_counts"].shape[1]
+    pycea.pl.annotation(tdata,keys = ["puro_counts"],ax = ax,width = puro_width,vmax = 250,
+                        cmap = sequential_cmap,label = "",border_width=.5)
+    pycea.pl.annotation(tdata,keys = ["blast"],ax = ax,palette = clade_palette, width = .2,gap = .2,label = "")
+    blast_width = 3/tdata.obsm["blast_counts"].shape[1]
+    pycea.pl.annotation(tdata,keys = ["blast_counts"],ax = ax,width = blast_width,vmax = 250,
+                        cmap = sequential_cmap,label = "",border_width=.5)
+    save_plot(fig, plot_name, plots_path,svg=False)
+
 ## Generate plots
 if __name__ == "__main__":
     # Clone stats
@@ -313,9 +340,7 @@ if __name__ == "__main__":
     # Distance comparison
     distances = sample_distances()
     for barcode in ["puro","blast"]:
-        distance_comparison_kdeplot("puro_distance_comparison_kdeplot",distances,barcode,figsize = (2.8,2.8))
-        distance_comparison_kdeplot("clone_1_puro_distance_comparison_kdeplot",distances,barcode,clone = 1,figsize = (2.8,2.8))
-        distance_comparison_kdeplot("clone_4_puro_distance_comparison_kdeplot",distances,barcode,clone = 1,figsize = (2.8,2.8))
+        distance_comparison_kdeplot(f"clone_4_{barcode}_distance_comparison_kdeplot",distances,barcode,clone = 4,figsize = (2.8,2.8))
     ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
     # LCA depths
     lca_depth_ridgeplot("lca_depth_ridgeplot",(2.5,2))
@@ -323,6 +348,7 @@ if __name__ == "__main__":
     for clone in range(1,7):
         polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
             scale = True,figsize = (3.5,3.5))
+        tree_with_barcodes(f"clone_{clone}_with_barcodes",clone,figsize = (7.5,1.8))
     # Example clone
     example = 4
     polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
