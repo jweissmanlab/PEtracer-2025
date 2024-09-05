@@ -119,10 +119,9 @@ def edit_rate_lineplot(plot_name,log = True,figsize = (3,2)):
     ax.set_ylabel("Edit rate (edits/day)")
     if log:
         plt.yscale("log")
-        plt.ylim(.009,.3)
+        plt.ylim(.006,.35)
     plt.xticks([0,20,40,60,80,100])
     plt.grid(True, which="both", ls="--", c='black', alpha=.7,linewidth = .4)
-    save_plot(fig, plot_name, plots_path)
     plt.legend(title = "Edit sites\nwith LM (%)",bbox_to_anchor=(1, 1), loc='upper left')
     save_plot(fig, plot_name, plots_path)
 

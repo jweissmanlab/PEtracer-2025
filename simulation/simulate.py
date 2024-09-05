@@ -186,7 +186,7 @@ def states_vs_frac_simulation(threads = 30):
 # Simulate fraction of branches with edit
 def edit_frac_simulation(num_simulations=100,max_generations=100,max_characters=120):
     results = []
-    for edit_rate in np.linspace(0, .3, 61):
+    for edit_rate in np.linspace(0, .3, 301):
         edits = np.zeros((num_simulations,max_generations+1,max_characters+1), dtype=bool)
         for i in range(num_simulations):
             edited = np.zeros(max_characters+1, dtype=bool)
@@ -281,6 +281,6 @@ if __name__ == "__main__":
     print("Simulating trees sweeping the other parameters")
     #parameter_sweep_simulation(threads = threads)
     print("Simulating minimum number of characters for large trees")
-    #min_characters_simulation()
+    min_characters_simulation()
     print("Simulating optimal edit rate vs experiment length")
-    #edit_rate_simulation()
+    edit_rate_simulation()
