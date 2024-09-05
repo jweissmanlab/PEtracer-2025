@@ -229,8 +229,8 @@ def ks_comparison_scatterplot(plot_name,distances,figsize = (2.5,2.5)):
     sns.scatterplot(data=ks_statistics,x="character",y="tree",hue="clone",style="barcode",
                     markers = ["o","s"],s = 40,legend = False,palette = discrete_cmap[6])
     plt.plot([.75,1],[.75,1],color="black",linestyle="--")
-    plt.xlabel("Phylogenetic distance (KS statistic)")
-    plt.ylabel("Character distance (KS statistic)")
+    plt.xlabel("Character distance (KS statistic)")
+    plt.ylabel("Phylogenetic distance (KS statistic)")
     ax.xaxis.set_major_locator(ticker.MultipleLocator(.1))
     ax.yaxis.set_major_locator(ticker.MultipleLocator(.1))
     # Add legend
