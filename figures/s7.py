@@ -11,7 +11,7 @@ barcoding_path = base_path / "barcoding" / "plots"
 sys.path.append(str(base_path))
 
 # Load source
-from src.utils import render_plot
+from petracer.utils import render_plot
 
 # Make canvas
 c = canvas.Canvas(str(figure_path / "s7.pdf"), pagesize=(8.5*72, 11*72))

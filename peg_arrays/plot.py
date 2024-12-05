@@ -17,8 +17,8 @@ ref_path = base_path / "reference"
 sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
-from src.config import discrete_cmap,edit_ids,site_ids
-from src.utils import save_plot
+from petracer.config import discrete_cmap,edit_ids,site_ids
+from petracer.utils import save_plot
 
 ## Define constants
 site_colors = {"RNF2":"#B3E6FF","HEK3":"#99A3FF","EMX1":"#66FFFF"}

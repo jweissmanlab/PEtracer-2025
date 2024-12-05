@@ -7,9 +7,9 @@ base_path = Path(__file__).parent.parent
 sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
-from src.utils import save_plot
-from src.legends import edit_legend, edit_legend_with_other, add_cbar, barcode_legend, barcoding_clone_legend
-from src.config import sequential_cmap
+from petracer.utils import save_plot
+from petracer.legends import edit_legend, edit_legend_with_other, add_cbar, barcode_legend, barcoding_clone_legend
+from petracer.config import sequential_cmap
 
 def plot_legend(handels, name, title= None):
     fig, ax = plt.subplots(figsize=(1, 1))

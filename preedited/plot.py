@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
+import fishtank as ft
 from sklearn.metrics import confusion_matrix
-from matplotlib_scalebar.scalebar import ScaleBar
 from pathlib import Path
 import geopandas as gpd
 import ast
@@ -29,12 +29,12 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
-from src.config import colors,sequential_cmap,site_names,edit_ids,min_edit_prob, edit_cmap
-from src.config import img_paths, edit_palette, preedited_clone_colors, fov_size, discrete_cmap, default_decoder
-from src.utils import save_plot
-from src.tree_utils import alleles_to_characters, plot_grouped_characters
-from src.img_utils import load_fov, get_rgb, unsharp_mask, plot_region
-from src.legends import edit_legend, add_cbar
+from petracer.config import colors,sequential_cmap,site_names,edit_ids,min_edit_prob, edit_cmap
+from petracer.config import preedited_clone_colors, fov_size, default_decoder
+from petracer.utils import save_plot
+from petracer.tree import alleles_to_characters, plot_grouped_characters
+from petracer.plotting import plot_polygons
+from petracer.legends import edit_legend, add_cbar
 
 ### Constants ###
 experiment_names = {"merfish_invitro":"MERFISH in vitro",
@@ -44,7 +44,16 @@ experiment_names = {"merfish_invitro":"MERFISH in vitro",
 experiment_fovs = {"merfish_invitro":[-50,60,125,235],
                    "merfish_invivo":[840,2590,1040,2790], #[1070,2585,1270,2785] [1740,2130,1940,2330]
                    "merfish_zombie":[-300,140,-100,340]}
-experiment_cells = {"merfish_invitro":[26,141,46.5,166]}    
+experiment_cells = {"merfish_invitro":[26,141,46.5,166]}  
+img_paths = {
+    "merfish_invitro": "/lab/weissman_imaging/puzheng/PE_LT/20240426-fullyEdited4T1_ingel_IntBCv2_combinedEditv3/",
+    "merfish_invivo": "/lab/weissman_imaging/puzheng/PE_LT/20240424-F242dpec_T7afterMerfish/",
+    "merfish_zombie": "/lab/weissman_imaging/puzheng/PE_LT/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/",
+}
+analysis_paths = {  
+    "merfish_invitro": "/lab/weissman_imaging/4T1/240426_preedited_invitro/",
+    "merfish_zombie": "/lab/weissman_imaging/4T1/240508_preedited_zombie/",
+}
 
 ### Helper functions ###
 def add_colored_border(image, border_thickness=1, border_color=(255, 0, 0)):
@@ -112,35 +121,33 @@ def calculate_detection_stats(experiments,prefix):
 def layout_spot_images(experiment,crop = [26,141,46.5,166],fov = 31):
     '''Create spots vs rounds matirx for spot images with the given region'''
     # Load data
-    img_path = img_paths[f"preedited_{experiment}"]
     alleles = pd.read_csv(data_path / f"{experiment}_alleles.csv",keep_default_na=False,dtype={"clone":str})
     cell_spots = alleles.query("@crop[0] < global_x < @crop[2] and @crop[1] < global_y < @crop[3]").copy()
-    rounds = pd.read_csv(data_path / "imaging_rounds.csv",keep_default_na=False)
-    spot_rounds = rounds.query("type.isin(['common','integration','edit'])").copy().reset_index()
+    bits = pd.read_csv(data_path / "lineage_merfish_bits.csv",keep_default_na=False).query("type.isin(['common','integration','edit'])").copy().reset_index()
     int_codebook = pd.read_csv(ref_path / "integration_codebook.csv")
     int_codebook["bits"] = int_codebook["bits"].apply(lambda x: ast.literal_eval(x))
-    fov_drift = pd.read_csv(img_path["analysis"]+f"/{fov}_drift.csv")
+    fov_drift = pd.read_csv(analysis_paths[experiment]+f"spots/channels_{fov}.csv")
     cell_spots = cell_spots.merge(int_codebook,on = "intID",how = "left")
     # Create a blank canvas
     n_spots = len(cell_spots)
-    n_rounds = len(spot_rounds)
+    n_bits = len(bits)
     img_size = 20  
     margin = 2   
     canvas_height = n_spots * (img_size + margin) - margin
-    canvas_width = n_rounds * (img_size + margin) - margin
+    canvas_width = n_bits * (img_size + margin) - margin
     canvas = np.ones((canvas_height, canvas_width,3))
     # Process and position each image
     i = 0
     site_to_color = {site:mcolors.to_rgb(colors[3+i]) for i,site in enumerate(site_names.keys())}
-    for series, series_rounds in spot_rounds.groupby("series", sort=False):
-        series_imgs, _ = load_fov(fov, series_rounds, img_path["path"],img_path["file_pattern"], z_project=False)
+    for series, series_bits in bits.groupby("series", sort=False):
+        series_imgs, _ = ft.io.read_fov(img_paths[experiment],fov = fov, channels=series_bits)
         j = 0
         for _, spot in cell_spots.iterrows():
             z = int(spot.z)
             y = int(spot.y - fov_drift.query("series == @series")["y_drift"].values[0])
             x = int(spot.x - fov_drift.query("series == @series")["x_drift"].values[0])
-            for k, round in series_rounds.reset_index().iterrows():
-                img = unsharp_mask(series_imgs[k, z, y - 50:y + 50, x - 50:x + 50], 10)
+            for k, round in series_bits.reset_index().iterrows():
+                img = ft.filters.unsharp_mask(series_imgs[k, z, y - 50:y + 50, x - 50:x + 50], sigma = 10)
                 img = np.clip(img.astype(float)/(spot["intBC_intensity"]),0,1)
                 img_section = np.stack([img[40:60, 40:60]]*3,axis = -1)
                 row_start = j * (img_size + margin)
@@ -156,7 +163,7 @@ def layout_spot_images(experiment,crop = [26,141,46.5,166],fov = 31):
                             img_section = add_colored_border(img_section,3,site_to_color[site])
                 canvas[row_start:row_start + img_size, col_start:col_start + img_size,:] = img_section
             j += 1
-        i += len(series_rounds)
+        i += len(series_bits)
     # save as numpy array
     np.save(results_path / f"{experiment}_spot_images.npy", canvas)
 
@@ -181,7 +188,7 @@ def plot_character_heatmap(plot_name,experiment,figsize = (4,3)):
                         obsm = {"characters":characters.drop(columns = "clone")})
     # Plot
     fig, ax = plt.subplots(figsize = figsize,dpi = 600,layout = "constrained")
-    pycea.pl.branches(tdata,linewidth=0,depth_key="time")
+    pycea.pl.branches(tdata,linewidth=0,depth_key="time",ax = ax)
     pycea.pl.annotation(tdata,keys=["clone"],width=4,palette = preedited_clone_colors,label = "Clone")
     plot_grouped_characters(tdata,width = 1,label = True,offset = 1)
     plt.legend(handles = edit_legend,ncol = 5,loc = "center",bbox_to_anchor = (0.5,-.32),columnspacing=.8,)
@@ -222,6 +229,7 @@ def detection_stats_barplot(plot_name,experiment,figsize = (1.5,1.5)):
     ax.set_xlabel(experiment_names[experiment])
     save_plot(fig,plot_name,plots_path)
     plt.close(fig)
+
 
 def cells_per_clone(plot_name,experiment,figsize = (1.5,1.5)):
     '''Plot the number of cells per clone for a preedited experiment'''
@@ -304,7 +312,7 @@ def edit_confusion_matrix(plot_name,experiment,figsize=(6.5, 2.5)):
     plt.close(fig)
 
 
-def intensity_vs_probability_scatterplot(plot_name,experiment,figsize = (2,2)):
+def intensity_vs_probability_kdeplot(plot_name,experiment,figsize = (2,2)):
     '''Plot intensity vs probability scatterplot for preedited experiment'''
     # Load data
     alleles = pd.read_csv(data_path / f"{experiment}_alleles.csv",
@@ -324,10 +332,12 @@ def intensity_vs_probability_scatterplot(plot_name,experiment,figsize = (2,2)):
     # Plot
     g = sns.JointGrid(data=alleles_long, x="intBC_intensity", y="prob", hue="correct", marginal_ticks=True, 
                   height=figsize[0], ratio=3, space=0.5)
-    g.plot_joint(sns.scatterplot, s=5, alpha=.3, palette=[colors[2], "darkgray"], legend=False)
-    g.ax_joint.set_xscale('log')
+    sns.kdeplot(data =  alleles_long.query("~correct").sample(1000),x = "intBC_intensity",y = "prob",levels = np.arange(.25,1.25,.25),
+                thresh=.25,fill = True,color = colors[2],alpha = .8,ax = g.ax_joint,log_scale = (True,False))
+    sns.kdeplot(data =alleles_long.query("correct").sample(1000),x = "intBC_intensity",y= "prob",levels = np.arange(.1,1.1,.1),
+                thresh=.1,fill = True,color = "darkgray",alpha = .8,ax = g.ax_joint,log_scale = (True,False))
     g.plot_marginals(sns.histplot, element="step", palette=[colors[2], "darkgray"],bins = 20,alpha = .8,stat="probability")
-    g.ax_joint.axhline(0.5, color='black', linestyle='--')
+    g.ax_joint.axhline(0.7, color='black', linestyle='--')
     handles = [mpatches.Patch(color="darkgray", label='Correct LM'),
             mpatches.Patch(color=colors[2], label='Incorrect LM')]
     g.figure.legend(handles=handles, loc='lower center', ncol=2, bbox_to_anchor=(0.5, -0.1), columnspacing=1.0)
@@ -374,7 +384,7 @@ def cell_masks(plot_name,experiment,crop = None,highlight = None,figsize = (3.5,
     cells.crs = None
     # plot
     fig, ax = plt.subplots(figsize = figsize,layout = "constrained",dpi = 600)
-    plot_region(img = None,crop = crop,cells = cells,palette=preedited_clone_colors,color = "clone",ax = ax)
+    plot_polygons(img = None,crop = crop,cells = cells,palette=preedited_clone_colors,color = "clone",ax = ax)
     if highlight:
         ax.add_patch(mpatches.Rectangle((highlight[0],highlight[1]),highlight[2]-highlight[0],highlight[3]-highlight[1],
                                         fill = False,edgecolor = "black",linewidth = 2))
@@ -386,22 +396,19 @@ def cell_masks(plot_name,experiment,crop = None,highlight = None,figsize = (3.5,
 def image_with_masks(plot_name,experiment,crop,highlight = None,label_spots = False,linewidth = 1.5,figsize = (3.5,3.5)):
     '''Plot image with cell masks overlayed for preedited experiment'''
     # Load data
-    img_path = img_paths[f"preedited_{experiment}"]
     cells = gpd.read_file(data_path / f"{experiment}_cells.json")
     cells.crs = None
-    rounds = pd.read_csv(data_path / "imaging_rounds.csv")
     # Load and process image
-    fov = cells[cells.within(shp.geometry.box(*crop))].iloc[0,:]
-    extent = [fov.x_offset,fov.y_offset,fov.x_offset+fov_size,fov.y_offset+fov_size]
-    fov_img, _ = load_fov(fov.fov,rounds.query("series == 'H0M1'"),img_path["path"],img_path["file_pattern"],z_project = False)
-    z_projection = get_rgb(np.stack([
-        unsharp_mask(fov_img[0].max(axis = 0),10),
-        unsharp_mask(fov_img[1].max(axis = 0),10),   
-        fov_img[4].max(axis = 0)],axis = 0),[99.9,99.9,100])
+    fov = cells[cells.within(shp.geometry.box(*crop))]["fov"].values[0]
+    img, attrs = ft.io.read_fov(img_paths[experiment],
+            fov = int(fov),series = "H0M1",z_project = True,colors = [748, 637, 405])
+    img[:2] = ft.filters.unsharp_mask(img[:2],sigma = 10)
+    x_offset, y_offset = attrs["stage_position"]
+    extent = [x_offset,y_offset,x_offset+fov_size,y_offset+fov_size]
     # Plot
     fig, ax = plt.subplots(figsize = figsize,layout = "constrained",dpi = 600)
-    plot_region(img = z_projection,extent=extent,crop = crop,cells = cells,
-                palette=preedited_clone_colors,edgecolor = "clone",ax = ax,)
+    plot_polygons(img = img,extent=extent,crop = crop,cells = cells,vmax = "p99.9",
+                palette=preedited_clone_colors,edgecolor = "clone",ax = ax)
     if highlight is not None:
         ax.add_patch(mpatches.Rectangle((highlight[0],highlight[1]),highlight[2]-highlight[0],highlight[3]-highlight[1],
                                         fill = False,edgecolor = "white",linewidth=linewidth ))
@@ -413,7 +420,9 @@ def image_with_masks(plot_name,experiment,crop,highlight = None,label_spots = Fa
                      fontsize=9, color='white', ha='right', va='bottom')
     ax.axis('off');
     save_plot(fig,plot_name,plots_path,svg = True,rasterize = True)
+    plt.show()
     plt.close(fig)
+    return
 
 
 def plot_spot_images(plot_name,experiment,crop,figsize = (8.2,4)):
@@ -484,7 +493,7 @@ def decoding_vs_intensity_lineplot(plot_name,experiments,figsize = (1.7,1.7)):
     # Load data
     spots = []
     for experiment in experiments:
-        path = img_paths[f"preedited_{experiment}"]["analysis"].replace("Analysis/","")
+        path = analysis_paths[experiment]
         spots.append(pd.read_csv(f"{path}decoded_spots.csv",keep_default_na=False,index_col=0).assign(experiment = experiment))
     spots = pd.concat(spots)
     spots["decoded"] = spots["intBC_dist"] < 1.2
@@ -515,7 +524,7 @@ def decoder_accuracy_barplot(plot_name,experiment,figsize=(2.5, 2.5)):
     brightest_round = get_edit_accuracy(alleles,"{site}_actual","{site}_brightest") * 100
     classifier = get_edit_accuracy(alleles,"{site}_actual","{site}") * 100
     threshold = get_edit_accuracy(alleles,"{site}_actual","{site}",min_prob = min_edit_prob) * 100
-    accuracy = pd.DataFrame({"Max intensity":brightest_round,"LR classifier":classifier,"LR (p > 0.5)":threshold},index = [0])
+    accuracy = pd.DataFrame({"Max intensity":brightest_round,"LR classifier":classifier,"LR (p > 0.7)":threshold},index = [0])
     # Plot
     fig, ax = plt.subplots(figsize=figsize, layout="constrained", dpi=600)
     sns.barplot(data = accuracy.T.reset_index(),x = "index",y = 0,color = colors[1])
@@ -563,18 +572,20 @@ def decoding_example_heatmaps(figsize = (2.1,2.1)):
 if __name__ == "__main__":
     clone_edit_whitelist("clone_edit_whitelist",(1.5,1))
     barcode_mapping_heatmap("preedited_barcode_mapping_heatmap",(4,2.5))
-    decoding_example_heatmaps((2.1,2.1))
+    #decoding_example_heatmaps((2.1,2.1))
     experiments = ["10x_invitro","merfish_invitro","merfish_invivo","merfish_zombie"]
     calculate_detection_stats(experiments,"preedited")
     # All experiments
     for experiment in experiments:
+        print("Generating plots for",experiment)
         plot_character_heatmap(f"{experiment}_characters",experiment,figsize = (4,3))
         detection_stats_barplot(f"{experiment}_detection_stats_barplot",experiment,figsize = (1.5,1.5))
         integration_confusion_matrix(f"{experiment}_integration_confusion_matrix",experiment,figsize=(1.2, 1.2))
         edit_confusion_matrix(f"{experiment}_edit_confusion_matrix",experiment,figsize=(6.5, 2.5))
     # MERFISH experiments
     for experiment in ["merfish_invitro","merfish_invivo","merfish_zombie"]:
-        intensity_vs_probability_scatterplot(f"{experiment}_intensity_vs_probability",experiment,figsize = (2.8,2.8))
+        print("Generating merfish plots for",experiment)
+        #intensity_vs_probability_kdeplot(f"{experiment}_intensity_vs_probability",experiment,figsize = (2.8,2.8))
         cell_masks(f"{experiment}_slide",experiment,highlight=experiment_fovs[experiment],figsize = (3.5,3.5))
         fov_figsize = (3.5,3.5) if experiment == "merfish_invivo" else (2.5,2.5)
         image_with_masks(f"{experiment}_fov",experiment,experiment_fovs[experiment],figsize = fov_figsize)

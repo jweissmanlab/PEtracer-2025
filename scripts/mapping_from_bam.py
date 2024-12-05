@@ -15,7 +15,7 @@ base_path = Path(__file__).parent.parent
 sys.path.append(str(base_path))
 
 # Load helper functions
-from src.seq_utils import barcode_from_alignment
+from petracer.seq import barcode_from_alignment
 
 def call_mapping(param):
     # Setup

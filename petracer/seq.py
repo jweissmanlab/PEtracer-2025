@@ -1,5 +1,23 @@
 import pandas as pd
 import re
+import numpy as np
+from sklearn.mixture import GaussianMixture
+
+
+def sigma_threshold(x, max_sigma = 3, n_components = 2, min_threshold = 1,log = False):
+    """Estimate threshold based on Gaussian Mixture Model."""
+    # If more than 5000 values sample
+    if len(x) > 5000:
+        x = x.sample(5000)
+    if log:
+        x = np.log1p(x)
+    gmm = GaussianMixture(n_components=n_components, random_state=0).fit(x.values.reshape(-1, 1)) 
+    high_component = np.argmax(gmm.means_)
+    threshold = gmm.means_[high_component,0] - max_sigma * np.sqrt(gmm.covariances_[high_component,0,0])
+    if log:
+        threshold = np.expm1(threshold)
+    return max(min_threshold, threshold)
+
 
 def insertion_from_alignment(sequence, cigar, pos, ref_begin = 0, window=2):
     """Extract insertion sequence from a read alignment."""

@@ -16,11 +16,24 @@ def get_leaves(tree: nx.DiGraph):
     return [node for node in nx.dfs_postorder_nodes(tree, get_root(tree)) if tree.out_degree(node) == 0]
 
 def get_edit_frac(characters):
-    return np.float64(np.apply_over_axes(np.sum,characters != 0,(0,1)).item()/
-                      np.apply_over_axes(np.sum,~np.isnan(characters),(0,1)).item())
+    characters = np.array(characters)
+    characters[np.isnan(characters)] = -1
+    detected = characters[characters != -1]
+    return np.sum(detected > 0)/len(detected)
+
+def mask_truncal_edits(characters):
+    masked_characters = {}
+    for column in characters.columns:
+        filtered_values = characters[characters[column] != -1][column]
+        value_counts = filtered_values.value_counts()
+        if len(value_counts[(value_counts.index != 0) & (value_counts.index != -1)]) > 0:
+            most_common_value = value_counts[(value_counts.index != 0) & (value_counts.index != -1)].idxmax()
+            fraction = (filtered_values == most_common_value).sum() / len(filtered_values)
+            if fraction < .95:
+                masked_characters[column] = characters[column]
+    return pd.DataFrame(masked_characters)
 
 def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id = 9,order = None,index = "cellBC"):
-    """Converts allele table to character matrix"""
     characters = alleles.copy()
     if isinstance(index,str):
         index = [index]
@@ -47,21 +60,20 @@ def alleles_to_characters(alleles,edit_ids = edit_ids,min_prob = None,other_id =
     characters.columns = ['{}-{}'.format(intID, site) for intID, site in characters.columns]
     return characters
 
-def reconstruct_ancestral_characters(tdata,tree = "tree",key = "characters",edit_cost = .4,copy = True):
-    """Reconstructs ancestral characters using Sankoff algorithm"""
+def reconstruct_ancestral_characters(tdata,tree = "tree",key = "characters",edit_cost = .6,copy = True):
     tree_key = tree
     if copy:
         tdata = tdata.copy()
-    costs = np.ones(shape = (10,10),dtype=float)
+    n_characters = max(tdata.obsm[key].max().max() + 1,10)
+    costs = np.ones(shape = (n_characters,n_characters),dtype=float)
     costs[0,:] = edit_cost
     np.fill_diagonal(costs,0)
-    costs = pd.DataFrame(costs,index = range(0,10),columns = range(0,10))
+    costs = pd.DataFrame(costs,index = range(0,n_characters),columns = range(0,n_characters))
     pycea.tl.ancestral_states(tdata,keys = key,method = "sankoff",costs = costs,missing_state=-1,tree = tree_key)
     if copy:
         return tdata
     
 def estimate_branch_lengths(tdata,tree = "tree",key = "characters",copy = True):
-    """Estimates branch lengths using IIDExponentialMLE"""
     tree_key = tree
     if copy:
         tdata = tdata.copy()
@@ -82,8 +94,7 @@ def estimate_branch_lengths(tdata,tree = "tree",key = "characters",copy = True):
     if copy:
         return tdata
     
-def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = True):
-    """Collapses edges with no mutations"""
+def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = True,tree_added = "tree"):
     tree_key = tree
     if copy:
         tdata = tdata.copy()
@@ -97,32 +108,41 @@ def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = Tr
                     tree.add_edge(edge[0],child)
                 tree.remove_edge(*edge)
                 tree.remove_node(edge[1])
-    tdata.obst[tree_key] = tree
+    tdata.obst[tree_added] = tree
     if copy:
         return tdata
 
-def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tree",estimate_lengths = True,
-                     reconstruct_characters = True,collapse_edges = False):
-    """Reconstructs tree using Cassiopeia"""
+def bfs_names(tree):
+    bfs_nodes = list(nx.bfs_tree(tree, source=pycea.utils.get_root(tree)))
+    leaves = pycea.utils.get_leaves(tree)
+    return {node: f"node{i}" for i, node in enumerate(bfs_nodes) if node not in leaves}
+
+
+def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tree",estimate_lengths = True,edit_cost = .6,
+                     reconstruct_characters = True,collapse_edges = False,keep_distances = False,mask_truncal = False):
     solvers = {"nj":cas.solver.NeighborJoiningSolver(cas.solver.dissimilarity.weighted_hamming_distance,
                                                  add_root=True,fast = True),
            "upgma":cas.solver.UPGMASolver(cas.solver.dissimilarity.weighted_hamming_distance,fast = True),
            "greedy":cas.solver.VanillaGreedySolver()}
-    cas_tree = cas.data.CassiopeiaTree(character_matrix=tdata.obsm[key])
+    characters = mask_truncal_edits(tdata.obsm[key]) if mask_truncal else tdata.obsm[key]
+    cas_tree = cas.data.CassiopeiaTree(character_matrix=characters)
     solvers[solver].solve(cas_tree)
-    cas_tree.reconstruct_ancestral_characters()
+    #cas_tree.reconstruct_ancestral_characters()
     tree = cas_tree.get_tree_topology()
     for node in tree.nodes:
         del tree.nodes[node]["character_states"]
     tdata.obst[tree_added] = tree
-    #if solver != "greedy":
-    #    tdata.obsp["character_distances"] = cas_tree.get_dissimilarity_map().loc[tdata.obs_names,tdata.obs_names]
+    if keep_distances:
+        if solver == "greedy":
+            cas_tree.compute_dissimilarity_map(cas.solver.dissimilarity.weighted_hamming_distance)
+        tdata.obsp["character_distances"] = cas_tree.get_dissimilarity_map().loc[tdata.obs_names,tdata.obs_names]
     if reconstruct_characters:
-        reconstruct_ancestral_characters(tdata,copy = False)
+        reconstruct_ancestral_characters(tdata,copy = False,tree = tree_added,edit_cost=edit_cost)
     if estimate_lengths:
-        estimate_branch_lengths(tdata,copy = False)
+        estimate_branch_lengths(tdata,copy = False,tree = tree_added)
     if collapse_edges:
-        collapse_mutationless_edges(tdata,copy = False)
+        collapse_mutationless_edges(tdata,copy = False,tree_added = tree_added,tree = tree_added)
+    tdata.obst[tree_added] = nx.relabel_nodes(tdata.obst[tree_added],bfs_names(tdata.obst[tree_added]))
     return tdata
 
 def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = .05):

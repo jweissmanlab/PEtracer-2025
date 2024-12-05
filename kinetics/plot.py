@@ -16,9 +16,9 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
-from src.config import colors,sequential_cmap,site_names,discrete_cmap,site_ids
-from src.utils import save_plot
-from src.legends import add_cbar
+from petracer.config import colors,sequential_cmap,site_names,discrete_cmap,site_ids
+from petracer.utils import save_plot
+from petracer.legends import add_cbar
 
 # Define constants
 speed_palette = {"Other":"lightgray","WT":colors[0],"2-3 weeks":colors[1],"4-6 weeks":colors[2]}

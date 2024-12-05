@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 
 from .config import sequential_cmap
-from .tree_utils import get_root, get_leaves
+from .tree import get_root
 
 def score_kinship(int_counts,ints):
     return int_counts[ints].sum(axis = 1)/int_counts.sum(axis = 1)

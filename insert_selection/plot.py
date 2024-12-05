@@ -16,8 +16,8 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
-from src.utils import save_plot
-from src.config import colors, sequential_cmap, site_names, discrete_cmap, edit_ids, edit_palette
+from petracer.utils import save_plot
+from petracer.config import colors, sequential_cmap, site_names, discrete_cmap, edit_ids, edit_palette
 
 def crosshyb_vs_length_lineplot(plot_name,y,y_label,figsize = (2,2)):
     results = pd.read_csv(results_path / "crosshyb_vs_length.csv")

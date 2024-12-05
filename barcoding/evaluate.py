@@ -16,9 +16,9 @@ base_path = Path(__file__).parent.parent
 sys.path.append(str(base_path))
 
 # Load source
-from src.config import threads
-from src.tree_utils import reconstruct_tree, get_edit_frac, collapse_mutationless_edges
-from src.barcode_utils import get_barcode_clades
+from petracer.config import threads
+from petracer.tree import reconstruct_tree, get_edit_frac, collapse_mutationless_edges
+from petracer.barcode import get_barcode_clades
 
 def eval_fmi(param):
     np.random.seed(param["iteration"])

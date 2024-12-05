@@ -15,7 +15,7 @@ base_path = Path(__file__).parent.parent
 sys.path.append(str(base_path))
 
 # Load helper functions
-from src.seq_utils import insertion_from_alignment, barcode_from_alignment
+from petracer.seq import insertion_from_alignment, barcode_from_alignment
 
 def call_alleles(param):
     # Setup

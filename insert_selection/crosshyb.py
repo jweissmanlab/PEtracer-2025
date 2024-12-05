@@ -13,7 +13,7 @@ results_path = Path(__file__).parent / "results"
 base_path = Path(__file__).parent.parent
 sys.path.append(str(base_path))
 
-from src.config import site_names
+from petracer.config import site_names
 
 #Define constants
 site_seqs = {"HEK3":"CTTGCCAAGT{insert}CGTGCTCACTG",

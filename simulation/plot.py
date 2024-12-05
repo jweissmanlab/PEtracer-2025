@@ -15,8 +15,8 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
-from src.utils import save_plot
-from src.config import colors, sequential_cmap, discrete_cmap
+from petracer.utils import save_plot
+from petracer.config import colors, sequential_cmap, discrete_cmap
 
 # Define constants
 metric_names = {"rf":"Robinson-Foulds distance",

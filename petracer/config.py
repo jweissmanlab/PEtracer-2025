@@ -6,6 +6,9 @@ import seaborn as sns
 threads = 30
 log_path = None
 
+# Paths
+base_path = Path(__file__).resolve().parent.parent
+
 # Names
 preedited_clone_names = {0:"Normal",1:"Clone 1",2:"Clone 2",3:"Clone 3",4:"Clone 4"}
 site_ids = {"RNF2":1,"HEK3":2,"EMX1":3}
@@ -43,7 +46,7 @@ for site in edit_ids:
     edit_names[site].update({"None":"Unedited"})
 
 # MERFISH parameters
-min_edit_prob = 0.5
+min_edit_prob = 0.7
 default_decoder = "v4_edit_decoder.pkl"
 img_paths = {
     "preedited_merfish_invitro": {
@@ -101,3 +104,24 @@ full_edit_cmap = mcolors.ListedColormap(["white","lightgray"] + list(discrete_cm
 
 # Preedited clone colors
 preedited_clone_colors = {"0":"lightgray","1":"#CD2626","2":"#FFE600","3":"#009E73","4":"#1874CD"}
+
+# Default style
+def set_theme(figsize=(3, 3), dpi=200):
+    """Set the default style for the plots"""
+    plt.style.use(base_path / "plot.mplstyle")
+    plt.rcParams["svg.fonttype"] = "none"
+    plt.rcParams["figure.figsize"] = figsize
+    plt.rcParams["figure.dpi"] = dpi
+    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=colors[1:])
+
+
+# Default paths
+def get_paths(folder):
+    """Get the paths for the data and plots folders"""
+    folder = Path(folder)
+    if "/" in str(folder):
+        base_path = folder.parent
+        folder = folder.name
+    else:
+        base_path = Path(__file__).resolve().parent.parent
+    return base_path, base_path / folder / "data", base_path / folder / "plots", base_path / folder / "results"

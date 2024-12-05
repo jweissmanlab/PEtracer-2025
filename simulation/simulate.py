@@ -16,7 +16,7 @@ base_path = Path(__file__).parent.parent
 sys.path.append(str(base_path))
 
 # Load source
-from src.config import threads, log_path
+from petracer.config import threads, log_path
 
 # Load config
 logfile = None if log_path is None else results_path / "log"

@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import NMF
 import itertools
 import seaborn as sns
@@ -8,40 +7,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 
-def sigma_threshold(x, max_sigma = 3, n_components = 2, min_threshold = 1,log = False):
-    """Estimate threshold based on Gaussian Mixture Model."""
-    # If more than 5000 values sample
-    if len(x) > 5000:
-        x = x.sample(5000)
-    if log:
-        x = np.log1p(x)
-    gmm = GaussianMixture(n_components=n_components, random_state=0).fit(x.values.reshape(-1, 1)) 
-    high_component = np.argmax(gmm.means_)
-    threshold = gmm.means_[high_component,0] - max_sigma * np.sqrt(gmm.covariances_[high_component,0,0])
-    if log:
-        threshold = np.expm1(threshold)
-    return max(min_threshold, threshold)
-
-def bimodal_threshold(x, default_cutoff = 5, min_cutoff = 2, max_cutoff = 20):
-    """Calculates the cutoff between two components of a bimodal distribution."""
-    # If less than 100 values remove
-    if len(x) < 100:
-        return x.max()
-    # If more than 1000 values sample
-    if len(x) > 5000:
-        x = x.sample(5000)
-    gmm = GaussianMixture(n_components=2, random_state=0).fit(x.values.reshape(-1, 1)) 
-    # Return default cutoff if only one component is found
-    if len(gmm.means_) < 2:
-        return default_cutoff
-    # If two components are found, return the cutoff between them
-    y = gmm.predict([[0]])
-    for cutoff in np.linspace(min_cutoff, max_cutoff, 100):
-        if gmm.predict([[cutoff]]) != y:
-            return cutoff
-    return max_cutoff
 
 def max_jaccard(x, groups, fill = -1, min_jaccard = 0):
+    """Find group with maximum jaccard similarity to x."""
     x_set = set(x)
     best_group, best_jaccard = fill, min_jaccard
     for group, y in groups.items():
@@ -51,14 +19,18 @@ def max_jaccard(x, groups, fill = -1, min_jaccard = 0):
             best_group, best_jaccard = group, jaccard
     return best_group
 
+
 def pairwise_combs(clones):
+    """Generate pairwise combinations of clones."""
     keys = list(clones.keys())
     combs = list(itertools.combinations(keys, 2))
     key_combs= [f"{i},{j}" for i, j in combs]
     list_combs = [sorted(set(list(clones[i]) + list(clones[j]))) for i, j in combs]
     return dict(zip(key_combs, list_combs))
 
+
 def plot_whitelist_alleles(alleles, top_n = 100, plot_title = None):
+    """Plot alleles colored by whitelist status."""
     colored_ints = alleles.copy()
     if top_n is not None:
         top_intes = alleles.groupby("intID")["whitelist"].mean().sort_values(ascending = False).head(top_n).index
@@ -80,8 +52,10 @@ def plot_whitelist_alleles(alleles, top_n = 100, plot_title = None):
     sns.clustermap(colored_ints,figsize = (6,6),vmax = vmax,vmin = -vmax,cmap = cmap,cbar_pos = None,dendrogram_ratio=(0,0))
     plt.title(plot_title)
 
+
 def call_clones(alleles,model = None,min_frac = .5,min_jaccard = .5,
                 doublets = True,top_n = None,plot = True,plot_title = None):
+    """Call clones based on set of integrations."""
     # Identify clones using clustering algorithm
     int_counts = pd.pivot_table(alleles.assign(present = 1),index=["cellBC"],columns="intID", values="present", aggfunc="first").fillna(0)
     int_counts[int_counts > 1] = 1
@@ -121,6 +95,7 @@ def get_alleles(df,sites = ["EMX1","HEK3","RNF2"]):
 
 def assign_clones(alleles,clone_whitelist,min_jaccard = .5,doublets = True,fill = -1,
                   top_n = 100,plot = True,plot_title = None):
+    """Assign cells to clones based on whitelist."""
     alleles = alleles.copy()
     # Assign cells to clones using jaccard similarity
     clone_alleles = clone_whitelist.groupby("clone").apply(get_alleles).to_dict()
@@ -141,6 +116,7 @@ def assign_clones(alleles,clone_whitelist,min_jaccard = .5,doublets = True,fill 
     return alleles, cell_to_clone.reset_index(drop = False)
 
 def select_allele(allele, sites=["RNF2", "HEK3", "EMX1"]):
+    """Select allele given conflicting sequencing reads."""
     agg_funcs = {col: 'sum' if col in ["UMI", "readCount", "frac"] else 'first' for col in allele.columns}
     aggregated = allele.groupby("n_alleles").agg(agg_funcs)
     n_edits = 0
