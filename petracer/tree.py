@@ -174,3 +174,23 @@ def hamming_distance(arr1, arr2):
         return 0
     normalized_distance = hamming_distance / num_valid_comparisons
     return normalized_distance
+
+def estimate_leaf_fitness(tdata,tree = "tree",depth_key = "depth",key_added = "fitness",copy = False):
+    tree_key = tree
+    if copy:
+        tdata = tdata.copy()
+    nx_tree = tdata.obst[tree_key].copy()
+    for node in nx_tree:
+        nx_tree.nodes[node]["_depth"] = nx_tree.nodes[node][depth_key]
+    cas_tree = cas.data.CassiopeiaTree(tree = nx_tree)
+    for edge in cas_tree.depth_first_traverse_edges():
+        t1 = cas_tree.get_attribute(edge[0],"_depth")
+        t2 = cas_tree.get_attribute(edge[1],"_depth")
+        cas_tree.set_branch_length(edge[0], edge[1], abs(t1-t2))
+    fitness_estimator = cas.tools.fitness_estimator.LBIJungle()
+    fitness_estimator.estimate_fitness(cas_tree)
+    fitnesses = np.array([cas_tree.get_attribute(cell, 'fitness') for cell in cas_tree.leaves])
+    fitnesses = pd.Series(fitnesses, index=cas_tree.leaves)
+    tdata.obs[key_added] = tdata.obs_names.map(fitnesses)
+    if copy:
+        return tdata

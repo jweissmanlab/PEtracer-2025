@@ -96,16 +96,26 @@ def clone_fmi_violin(plot_name,figsize = (2,2)):
     plt.xticks([0,1],["True","Mixed"]);
     save_plot(fig, plot_name, plots_path)
 
-def clone_fmi_lineplot(plot_name,x,figsize = (2,2)):
+def clone_fmi_lineplot(plot_name,x,hue = "clone",figsize = (2,2)):
     fmi = pd.read_csv(results_path / f"fmi_vs_{x}.csv")
     if x == "detection_rate":
         fmi[x] = fmi[x]*100
     fig, ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
-    sns.lineplot(data=fmi,x=x,y="fmi",ax=ax,hue = "clone",palette = discrete_cmap[6],legend = False,linewidth = 1.5)
+    if hue is None:
+        fmi = fmi.groupby(["clone",x]).agg({"fmi":"mean"}).reset_index()
+        pallette = None
+        if x == "characters":
+            fmi = fmi[fmi[x] <= 35]
+        if x == "detection_rate":
+            fmi = fmi[fmi[x] <= 80]
+    else:
+        pallette = discrete_cmap[6]
+
+    sns.lineplot(data=fmi,x=x,y="fmi",ax=ax,hue = hue,palette = pallette,
+                 legend = False,linewidth = 1.5,color = colors[1],err_kws = {"linewidth":0})
     plt.ylim(0,1);
     ax.set_xlabel(param_names[x])
     ax.set_ylabel(metric_names["fmi"])
-
     save_plot(fig, plot_name, plots_path)
 
 def nj_vs_upgma_fmi_scatterplot(plot_name,figsize = (2,2)):
@@ -331,29 +341,30 @@ def tree_with_barcodes(plot_name,clone,figsize = (7.5,1.8)):
 
 ## Generate plots
 if __name__ == "__main__":
-    # Clone stats
-    # clone_stats_table("clone_stats_table")
-    # edit_fraction_stacked_barplot("edit_fraction_stacked_barplot",figsize=(1.3,2))
-    # # FMI
-    # clone_fmi_violin("clone_fmi_violin",figsize = (1.5,2))
-    # nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2.2,2.2))
-    # clone_fmi_lineplot("clone_fmi_vs_characters_lineplot",x = "characters",figsize = (2,2))
-    # clone_fmi_lineplot("clone_fmi_vs_detection_lineplot",x = "detection_rate",figsize = (2,2))
-    # # Distance comparison
+    #Clone stats
+    clone_stats_table("clone_stats_table")
+    edit_fraction_stacked_barplot("edit_fraction_stacked_barplot",figsize=(1.3,2))
+    # FMI
+    clone_fmi_violin("clone_fmi_violin",figsize = (1.5,2))
+    nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2.2,2.2))
+    for x in ["characters","detection_rate"]:
+        clone_fmi_lineplot(f"clone_fmi_vs_{x}_lineplot",x = x,figsize = (2,2))
+        clone_fmi_lineplot(f"fmi_vs_{x}_lineplot",x = x,hue = None,figsize = (2,2))
+    # Distance comparison
     distances = sample_distances()
     for barcode in ["puro","blast"]:
          distance_comparison_kdeplot(f"clone_4_{barcode}_distance_comparison_kdeplot",distances,barcode,clone = 4,figsize = (2.8,2.8))
-    # ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
-    # # LCA depths
-    # lca_depth_ridgeplot("lca_depth_ridgeplot",(2.5,2))
-    # # Clone trees
-    # for clone in range(1,7):
-    #     polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
-    #         scale = True,figsize = (3.5,3.5))
-    #     tree_with_barcodes(f"clone_{clone}_with_barcodes",clone,figsize = (7.5,1.8))
+    ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
+    # LCA depths
+    lca_depth_ridgeplot("lca_depth_ridgeplot",(2.5,2))
+    # Clone trees
+    for clone in range(1,7):
+        polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
+            scale = True,figsize = (3.5,3.5))
+        tree_with_barcodes(f"clone_{clone}_with_barcodes",clone,figsize = (7.5,1.8))
     # Example clone
     example = 4
-    # polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
-    # polar_tree_with_clades(f"clone_{example}_blast_clades",example,"blast",figsize = (4,4))
-    # polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
-    #tree_with_characters(f"clone_{example}_with_characters",example,figsize = (2.5,2))
+    polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
+    polar_tree_with_clades(f"clone_{example}_blast_clades",example,"blast",figsize = (4,4))
+    polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
+    tree_with_characters(f"clone_{example}_with_characters",example,figsize = (2.5,2))

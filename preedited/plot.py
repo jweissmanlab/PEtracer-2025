@@ -332,18 +332,21 @@ def intensity_vs_probability_kdeplot(plot_name,experiment,figsize = (2,2)):
     # Plot
     g = sns.JointGrid(data=alleles_long, x="intBC_intensity", y="prob", hue="correct", marginal_ticks=True, 
                   height=figsize[0], ratio=3, space=0.5)
-    sns.kdeplot(data =  alleles_long.query("~correct").sample(1000),x = "intBC_intensity",y = "prob",levels = np.arange(.25,1.25,.25),
-                thresh=.25,fill = True,color = colors[2],alpha = .8,ax = g.ax_joint,log_scale = (True,False))
-    sns.kdeplot(data =alleles_long.query("correct").sample(1000),x = "intBC_intensity",y= "prob",levels = np.arange(.1,1.1,.1),
-                thresh=.1,fill = True,color = "darkgray",alpha = .8,ax = g.ax_joint,log_scale = (True,False))
-    g.plot_marginals(sns.histplot, element="step", palette=[colors[2], "darkgray"],bins = 20,alpha = .8,stat="probability")
+    sns.kdeplot(data =alleles_long.sample(10000),x = "intBC_intensity",y= "prob",levels = 10,hue = "correct",
+                palette={False:colors[2],True:"darkgray"},thresh=.01,fill = True,color = "darkgray",bw_adjust=1.8,
+                alpha = .8,ax = g.ax_joint,log_scale = (True,False),hue_order=[True,False],legend=False)
+    g.plot_marginals(sns.histplot, element="step", palette={False:colors[2],True:"darkgray"},bins = 20,alpha = .8,
+                     stat="probability",common_norm=False,hue_order=[True,False])
     g.ax_joint.axhline(0.7, color='black', linestyle='--')
     handles = [mpatches.Patch(color="darkgray", label='Correct LM'),
             mpatches.Patch(color=colors[2], label='Incorrect LM')]
     g.figure.legend(handles=handles, loc='lower center', ncol=2, bbox_to_anchor=(0.5, -0.1), columnspacing=1.0)
     g.ax_joint.set_xlabel("Spot intensity");
     g.ax_joint.set_ylabel("LM probability");
+    g.ax_joint.set_ylim(0,1.2)
+    g.ax_joint.set_xlim(2e2,1e5)
     save_plot(g.figure,plot_name,plots_path,svg = True,rasterize=True)
+    return alleles_long
 
 
 def clone_edit_whitelist(plot_name,figsize = (2,1)):
