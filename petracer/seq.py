@@ -91,3 +91,23 @@ def correct_to_whitelist(seqs, whitelist, max_dist = 2):
     corrected_seqs = [corrections[str] for str in seqs]
 
     return corrected_seqs
+
+def select_allele(allele, sites=["RNF2", "HEK3", "EMX1"]):
+    """Select allele given conflicting sequencing reads."""
+    agg_funcs = {col: 'sum' if col in ["UMI", "readCount", "frac"] else 'first' for col in allele.columns}
+    aggregated = allele.groupby("n_alleles").agg(agg_funcs)
+    n_edits = 0
+    for site in sites:
+        values = list(allele[site].dropna().unique())
+        if len(values) == 1:
+            continue
+        elif len(values) == 2 and 'None' in values:
+            aggregated[site] = values[0] if values[1] == 'None' else values[1]
+            n_edits += 1
+        elif len(values) > 1:
+            return allele
+    if n_edits == 1:
+        aggregated["n_alleles"] = 1
+        return aggregated
+    else:
+        return allele

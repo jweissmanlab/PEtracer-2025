@@ -5,6 +5,7 @@ import cassiopeia as cas
 import matplotlib.pyplot as plt
 import treedata as td
 import pycea
+from numba import njit
 
 from .config import edit_ids, edit_palette
 
@@ -93,15 +94,19 @@ def estimate_branch_lengths(tdata,tree = "tree",key = "characters",copy = True):
     tdata.obst[tree_key] = tree
     if copy:
         return tdata
-    
-def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = True,tree_added = "tree"):
+
+def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = True,tree_added = "tree",mutation_key = None):
     tree_key = tree
     if copy:
         tdata = tdata.copy()
     tree = tdata.obst[tree].copy()
     root = [node for node in tree.nodes if tree.in_degree(node) == 0][0]
     for edge in reversed(list(nx.dfs_edges(tree,root))):
-        if tree.nodes[edge[0]][key] == tree.nodes[edge[1]][key]:
+        if mutation_key is not None:
+            has_mutation = tree.edges[edge][mutation_key]
+        else:
+            has_mutation = np.any(tree.nodes[edge[1]][key] != tree.nodes[edge[0]][key])
+        if not has_mutation:
             children = list(tree.successors(edge[1]))
             if len(children) > 0:
                 for child in children:
@@ -112,6 +117,50 @@ def collapse_mutationless_edges(tdata,tree = "tree",key = "characters",copy = Tr
     if copy:
         return tdata
 
+
+def majority_character(characters,min_size = 20,min_frac = .8):
+    """Find the majority character in a list of characters"""
+    characters = np.array(characters)
+    if len(characters) < min_size:
+        return -1
+    characters = characters[characters != -1]
+    if len(characters) == 0:
+        return -1
+    unique_values, counts = np.unique(characters, return_counts=True)
+    for value, count in zip(unique_values, counts):
+        if count / len(characters) > min_frac:
+            return value
+    return 0
+
+
+def same_characters(c1, c2):
+    """Check if two arrays are equal, ignoring -1 values"""
+    c1 = np.array(c1)
+    c2 = np.array(c2)
+    mask = (c1 != -1) & (c2 != -1)
+    if not mask.any():
+        return True
+    return np.array_equal(c1[mask], c2[mask])
+
+
+def identify_mutations(tdata,tree = "tree",key = "characters",key_added = "has_mutation",min_frac = .75,copy = False):
+    """Mark edges with a mutation"""
+    if copy:
+        tdata = tdata.copy()
+    method = lambda x: majority_character(x,min_frac = min_frac)
+    pycea.tl.ancestral_states(tdata, keys = key, method = method,keys_added="majority_characters",tree = tree)
+    for edge in tdata.obst[tree].edges:
+        has_mutation = not (same_characters(tdata.obst[tree].nodes[edge[0]]["majority_characters"],
+                                          tdata.obst[tree].nodes[edge[1]]["majority_characters"]) and
+                            same_characters(tdata.obst[tree].nodes[edge[0]][key],
+                                            tdata.obst[tree].nodes[edge[1]][key]))
+        tdata.obst[tree].edges[edge][key_added] = has_mutation
+    for node in tdata.obst[tree].nodes:
+        del tdata.obst[tree].nodes[node]["majority_characters"]
+    if copy:
+        return tdata
+
+
 def bfs_names(tree):
     bfs_nodes = list(nx.bfs_tree(tree, source=pycea.utils.get_root(tree)))
     leaves = pycea.utils.get_leaves(tree)
@@ -119,13 +168,19 @@ def bfs_names(tree):
 
 
 def reconstruct_tree(tdata,solver = "upgma",key = "characters",tree_added = "tree",estimate_lengths = True,edit_cost = .6,
-                     reconstruct_characters = True,collapse_edges = False,keep_distances = False,mask_truncal = False):
+                     reconstruct_characters = True,collapse_edges = False,keep_distances = False,mask_truncal = False,
+                     upweight = None):
     solvers = {"nj":cas.solver.NeighborJoiningSolver(cas.solver.dissimilarity.weighted_hamming_distance,
                                                  add_root=True,fast = True),
            "upgma":cas.solver.UPGMASolver(cas.solver.dissimilarity.weighted_hamming_distance,fast = True),
            "greedy":cas.solver.VanillaGreedySolver()}
-    characters = mask_truncal_edits(tdata.obsm[key]) if mask_truncal else tdata.obsm[key]
-    cas_tree = cas.data.CassiopeiaTree(character_matrix=characters)
+    characters = tdata.obsm[key]
+    masked_characters = mask_truncal_edits(characters).copy() if mask_truncal else characters.copy()
+    if upweight is not None:
+        for character in upweight:
+            for i in range(1):
+                masked_characters[f"{character}_{i}"] = masked_characters[character]
+    cas_tree = cas.data.CassiopeiaTree(character_matrix=masked_characters)
     solvers[solver].solve(cas_tree)
     #cas_tree.reconstruct_ancestral_characters()
     tree = cas_tree.get_tree_topology()
@@ -159,6 +214,7 @@ def plot_grouped_characters(tdata,ax = None,width = .1,label = False,offset = .0
     tdata.obs = tdata.obs.drop(columns = tdata.obsm["characters"].columns)
     ax.tick_params(axis='x', pad=0)
 
+@njit
 def hamming_distance(arr1, arr2):
     valid_mask = (arr1 != -1) & (arr2 != -1)
     hamming_distance = 0
@@ -194,3 +250,29 @@ def estimate_leaf_fitness(tdata,tree = "tree",depth_key = "depth",key_added = "f
     tdata.obs[key_added] = tdata.obs_names.map(fitnesses)
     if copy:
         return tdata
+    
+def n_extant(tdata, depth_key, groupby = None, bins = 20, tree = "tree"):
+    # Get nodes
+    if groupby is None:
+        groupby = "_all"
+        nodes = pycea.utils.get_keyed_node_data(tdata, keys = [depth_key],tree = tree)
+        nodes["_all"] = 1
+    else:
+        nodes = pycea.utils.get_keyed_node_data(tdata, keys = [depth_key, groupby])
+    nodes.index = nodes.index.droplevel("tree")
+    # Get timepoints
+    timepoints = np.histogram_bin_edges(nodes[depth_key],bins = bins)
+    # Get counts
+    groups = nodes[groupby].unique()
+    group_counts = {group: np.zeros_like(timepoints) for group in groups}
+    for edge in tdata.obst[tree].edges:
+        birth_idx = np.searchsorted(timepoints,nodes.loc[edge[0],depth_key] - 1e-4, side='right')
+        death_idx = np.searchsorted(timepoints,nodes.loc[edge[1],depth_key] + 1e-4, side='left')
+        group_counts[nodes.loc[edge[0],groupby]][birth_idx:death_idx] += 1
+    group_n = []
+    for group, counts in group_counts.items():
+        group_n.append(pd.DataFrame({"time":timepoints,"n_extant":counts,groupby:group}))
+    group_n = pd.concat(group_n)
+    if groupby == "_all":
+        group_n.drop(columns = "_all",inplace = True)
+    return group_n

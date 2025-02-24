@@ -22,11 +22,16 @@ barcode_legend = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='b
 barcoding_clone_legend = [mpatches.Rectangle((0, 0), .5, 1, color=color, label=label)
                     for color, label in zip(discrete_cmap[6], range(1,7))]
 
-def add_cbar(cbar_ax, cmap, ticks, label, ticklabels=None):
+def add_cbar(cbar_ax, cmap, ticks, label, ticklabels=None, center=None):
     vmin = min(ticks)
     vmax = max(ticks)
-    cbar = mpl.colorbar.ColorbarBase(cbar_ax, cmap=cmap,
-            norm=mpl.colors.Normalize(vmin=vmin, vmax=vmax), orientation='vertical')
+    if center is not None:
+        norm = mpl.colors.TwoSlopeNorm(vmin=vmin, vcenter=center, vmax=vmax)
+    else:
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    cbar = mpl.colorbar.ColorbarBase(
+        cbar_ax, cmap=cmap, norm=norm, orientation='vertical'
+    )
     cbar.outline.set_visible(False)
     cbar.set_label(label, labelpad=3)
     cbar.set_ticks(ticks)
@@ -34,4 +39,5 @@ def add_cbar(cbar_ax, cmap, ticks, label, ticklabels=None):
         cbar.ax.set_yticklabels(ticklabels)
     else:
         cbar.set_ticklabels([f'{x}' for x in ticks])
+    
     cbar.ax.yaxis.set_tick_params(pad=2)

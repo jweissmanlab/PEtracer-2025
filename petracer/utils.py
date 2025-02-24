@@ -30,10 +30,10 @@ def convert_svg_text(svg_path):
                     line = line.replace('style=', f'font-family="{font_family}" font-size="{font_size}" style=')
             file.write(line)
 
-def save_plot(fig, plot_name, plots_path='.',transparent=False,svg = True,rasterize = False):
+def save_plot(fig, plot_name, plots_path='.',transparent=False,svg = True,rasterize = False, dpi = 600):
     plt.rcParams['svg.fonttype'] = 'none'
     plots_path = Path(plots_path)
-    fig.savefig(plots_path / f"{plot_name}.png", bbox_inches='tight', pad_inches=0, transparent=transparent,dpi = 600)
+    fig.savefig(plots_path / f"{plot_name}.png", bbox_inches='tight', pad_inches=0, transparent=transparent,dpi = dpi)
     if svg:
         if rasterize:
             for ax in fig.axes:
@@ -42,7 +42,7 @@ def save_plot(fig, plot_name, plots_path='.',transparent=False,svg = True,raster
                                            mcoll.PatchCollection, mcoll.LineCollection, mpatches.Patch, mpatches.Rectangle,
                                            mimage.AxesImage)):
                         artist.set_rasterized(True)
-        fig.savefig(plots_path / f"{plot_name}.svg", bbox_inches='tight', pad_inches=0, transparent=transparent,dpi = 600)
+        fig.savefig(plots_path / f"{plot_name}.svg", bbox_inches='tight', pad_inches=0, transparent=transparent,dpi = dpi)
         convert_svg_text(plots_path / f"{plot_name}.svg")
 
 
