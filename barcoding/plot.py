@@ -1,21 +1,22 @@
+import multiprocessing as mp
+import pickle
 import sys
+from pathlib import Path
+
+import cassiopeia as cas
+import matplotlib as mpl
+import matplotlib.colorbar as mcolorbar
+import matplotlib.colors as mcolors
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import scipy as sp
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.ticker as ticker
-import matplotlib.lines as mlines
-import matplotlib.colors as mcolors
-import matplotlib.colorbar as mcolorbar
-import matplotlib.patches as mpatches
-import treedata as td
 import pycea
-from pathlib import Path
-import cassiopeia as cas
-import pickle
-import multiprocessing as mp
+import scipy as sp
+import seaborn as sns
+import treedata as td
 
 # Configure
 results_path = Path(__file__).parent / "results"
@@ -27,10 +28,10 @@ sys.path.append(str(base_path))
 plt.style.use(base_path / 'plot.mplstyle')
 
 # Load source
-from petracer.config import colors,discrete_cmap,site_names,edit_ids,site_ids,edit_palette,sequential_cmap
+from petracer.config import colors, discrete_cmap, edit_ids, edit_palette, sequential_cmap, site_ids, site_names
+from petracer.legends import barcode_legend, barcoding_clone_legend
+from petracer.tree import get_leaves, hamming_distance, plot_grouped_characters
 from petracer.utils import save_plot
-from petracer.tree import plot_grouped_characters,hamming_distance, get_leaves
-from petracer.legends import barcode_legend,barcoding_clone_legend
 
 # Define constants
 metric_names = {"fmi":"Clone Barcode FMI"}
@@ -109,13 +110,15 @@ def clone_fmi_lineplot(plot_name,x,hue = "clone",figsize = (2,2)):
         if x == "detection_rate":
             fmi = fmi[fmi[x] <= 80]
     else:
-        pallette = discrete_cmap[6]
-
+        pallette = mcolors.LinearSegmentedColormap.from_list("lightgray_to_black", ["lightgray", "black"])
     sns.lineplot(data=fmi,x=x,y="fmi",ax=ax,hue = hue,palette = pallette,
-                 legend = False,linewidth = 1.5,color = colors[1],err_kws = {"linewidth":0})
+                 legend = True,linewidth = 1.5,color = colors[1],err_kws = {"linewidth":0})
     plt.ylim(0,1);
     ax.set_xlabel(param_names[x])
     ax.set_ylabel(metric_names["fmi"])
+    if x == "detection_rate":
+        ax.axvline(60, linestyle="--", zorder=0,color = "black")
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(20))
     save_plot(fig, plot_name, plots_path)
 
 def nj_vs_upgma_fmi_scatterplot(plot_name,figsize = (2,2)):
@@ -151,8 +154,11 @@ def polar_tree_with_clades(plot_name,clone,barcode,title = None,scale = False,fi
         n_cells = len(tdata.obs)
         figsize = (figsize[0]*np.sqrt(n_cells/5000),figsize[1]*np.sqrt(n_cells/5000))
     fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=figsize,dpi = 600, layout = "constrained")
-    pycea.pl.branches(tdata, depth_key = "time", polar = True,ax = ax,
-                      color = f"{barcode}_clade",palette = clade_palette,linewidth=.3)
+    if barcode is not None:
+        pycea.pl.branches(tdata, depth_key = "time", polar = True,ax = ax,
+                        color = f"{barcode}_clade",palette = clade_palette,linewidth=.3)
+    else:
+        pycea.pl.branches(tdata, depth_key = "time", polar = True,ax = ax,linewidth=.3)
     if barcode in ["puro","combined"]:
         pycea.pl.nodes(tdata,color = "puro_lca",ax = ax,palette = clade_palette,style = "s",size = 15)
         pycea.pl.annotation(tdata,ax = ax,keys = ["puro"],palette=clade_palette)
@@ -321,7 +327,7 @@ def edit_fraction_stacked_barplot(plot_name,figsize=(1,2)):
     ax.yaxis.set_major_locator(ticker.MultipleLocator(25))
     save_plot(fig, "edit_fraction_stacked_barplot", plots_path)
 
-def tree_with_barcodes(plot_name,clone,figsize = (7.5,1.8)):
+def tree_with_barcodes(plot_name,clone,figsize = (8.2,1.8)):
     clade_palette = {str(clade):color for clade, color in enumerate(colors[1:21]*100)}
     tdata = td.read_h5ad(data_path / f"barcoding_clone_{clone}.h5td")
     sort_barcode_columns(tdata)
@@ -329,11 +335,11 @@ def tree_with_barcodes(plot_name,clone,figsize = (7.5,1.8)):
     pycea.pl.branches(tdata, depth_key = "time",ax = ax,linewidth=.1)
     characters_width = 3/tdata.obsm["characters"].shape[1]
     plot_grouped_characters(tdata,ax = ax,width = characters_width)
-    pycea.pl.annotation(tdata,keys = ["puro"],ax = ax,palette = clade_palette, width = .2,gap = .2,label = "")
+    pycea.pl.annotation(tdata,keys = ["puro"],ax = ax,palette = clade_palette, width = .2,gap = .6,label = "")
     puro_width = 3/tdata.obsm["puro_counts"].shape[1]
     pycea.pl.annotation(tdata,keys = ["puro_counts"],ax = ax,width = puro_width,vmax = 250,
                         cmap = sequential_cmap,label = "",border_width=.5)
-    pycea.pl.annotation(tdata,keys = ["blast"],ax = ax,palette = clade_palette, width = .2,gap = .2,label = "")
+    pycea.pl.annotation(tdata,keys = ["blast"],ax = ax,palette = clade_palette, width = .2,gap = .6,label = "")
     blast_width = 3/tdata.obsm["blast_counts"].shape[1]
     pycea.pl.annotation(tdata,keys = ["blast_counts"],ax = ax,width = blast_width,vmax = 250,
                         cmap = sequential_cmap,label = "",border_width=.5)
@@ -342,29 +348,31 @@ def tree_with_barcodes(plot_name,clone,figsize = (7.5,1.8)):
 ## Generate plots
 if __name__ == "__main__":
     #Clone stats
-    clone_stats_table("clone_stats_table")
-    edit_fraction_stacked_barplot("edit_fraction_stacked_barplot",figsize=(1.3,2))
-    # FMI
-    clone_fmi_violin("clone_fmi_violin",figsize = (1.5,2))
-    nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2.2,2.2))
-    for x in ["characters","detection_rate"]:
-        clone_fmi_lineplot(f"clone_fmi_vs_{x}_lineplot",x = x,figsize = (2,2))
-        clone_fmi_lineplot(f"fmi_vs_{x}_lineplot",x = x,hue = None,figsize = (2,2))
-    # Distance comparison
-    distances = sample_distances()
-    for barcode in ["puro","blast"]:
-         distance_comparison_kdeplot(f"clone_4_{barcode}_distance_comparison_kdeplot",distances,barcode,clone = 4,figsize = (2.8,2.8))
-    ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
-    # LCA depths
-    lca_depth_ridgeplot("lca_depth_ridgeplot",(2.5,2))
+    # clone_stats_table("clone_stats_table")
+    # edit_fraction_stacked_barplot("edit_fraction_stacked_barplot",figsize=(1.3,2))
+    # # FMI
+    # clone_fmi_violin("clone_fmi_violin",figsize = (1.5,2))
+    # nj_vs_upgma_fmi_scatterplot("nj_vs_upgma_fmi_scatterplot",figsize = (2.2,2.2))
+    # for x in ["characters","detection_rate"]:
+    #     clone_fmi_lineplot(f"clone_fmi_vs_{x}_lineplot",x = x,figsize = (2,2))
+    #     clone_fmi_lineplot(f"fmi_vs_{x}_lineplot",x = x,hue = None,figsize = (2,2))
+    # # Distance comparison
+    # distances = sample_distances()
+    # for barcode in ["puro","blast"]:
+    #      distance_comparison_kdeplot(f"clone_4_{barcode}_distance_comparison_kdeplot",distances,barcode,clone = 4,figsize = (2.8,2.8))
+    # ks_comparison_scatterplot("ks_comparison_scatterplot",distances,figsize = (2.2,2.2))
+    # # LCA depths
+    # lca_depth_ridgeplot("lca_depth_ridgeplot",(2.5,2))
     # Clone trees
-    for clone in range(1,7):
-        polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
-            scale = True,figsize = (3.5,3.5))
-        tree_with_barcodes(f"clone_{clone}_with_barcodes",clone,figsize = (7.5,1.8))
-    # Example clone
+    #for clone in range(1,7):
+        #polar_tree_with_clades(f"clone_{clone}_combined_clades",clone,"combined",
+        #    scale = True,figsize = (3.5,3.5))
+        #tree_with_barcodes(f"clone_{clone}_with_barcodes",clone,figsize = (8.2,1.7))
+    # # Example clone
     example = 4
-    polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
-    polar_tree_with_clades(f"clone_{example}_blast_clades",example,"blast",figsize = (4,4))
-    polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
-    tree_with_characters(f"clone_{example}_with_characters",example,figsize = (2.5,2))
+    # polar_tree_with_clades(f"clone_{example}_puro_clades",example,"puro",figsize = (4,4))
+    # polar_tree_with_clades(f"clone_{example}_blast_clades",example,"blast",figsize = (4,4))
+    polar_tree_with_clades(f"clone_{example}_polar",example,None,figsize = (4,4))
+    # polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
+    # tree_with_characters(f"clone_{example}_with_characters",example,figsize = (2.5,2))
+
