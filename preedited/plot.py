@@ -232,7 +232,7 @@ def detection_stats_barplot(plot_name,experiment,figsize = (1.5,1.5)):
 
 
 def cells_per_clone(plot_name,experiment,figsize = (1.5,1.5)):
-    '''Plot the number of cells per clone for a preedited experiment'''
+    """Plot the number of cells per clone for a preedited experiment"""
     if experiment == "10x_invitro":
         cells = pd.read_csv(data_path / f"{experiment}_cells.csv")
     else:
@@ -246,7 +246,7 @@ def cells_per_clone(plot_name,experiment,figsize = (1.5,1.5)):
 
 
 def integration_confusion_matrix(plot_name,experiment,figsize=(1.2, 1.2)):
-    '''Plot integration confusion matrix for preedited experiment'''
+    """Plot integration confusion matrix for preedited experiment"""
     # Load data
     alleles = pd.read_csv(data_path / f"{experiment}_alleles.csv",keep_default_na=False,dtype={"clone":str})
     # Generate confusion matrix
@@ -268,7 +268,7 @@ def integration_confusion_matrix(plot_name,experiment,figsize=(1.2, 1.2)):
 
 
 def edit_confusion_matrix(plot_name,experiment,figsize=(6.5, 2.5)):
-    '''Plot edit confusion matrix for preedited experiment'''
+    """Plot edit confusion matrix for preedited experiment"""
     # Load data
     alleles = pd.read_csv(data_path / f"{experiment}_alleles.csv",
                         keep_default_na=False,dtype={"clone":str})
@@ -313,7 +313,7 @@ def edit_confusion_matrix(plot_name,experiment,figsize=(6.5, 2.5)):
 
 
 def intensity_vs_probability_kdeplot(plot_name,experiment,figsize = (2,2)):
-    '''Plot intensity vs probability scatterplot for preedited experiment'''
+    """Plot intensity vs probability scatterplot for preedited experiment"""
     # Load data
     alleles = pd.read_csv(data_path / f"{experiment}_alleles.csv",
                         keep_default_na=False,dtype={"clone":str})

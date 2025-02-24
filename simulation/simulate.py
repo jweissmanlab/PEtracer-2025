@@ -81,7 +81,7 @@ def edit_frac_to_mutation_rate(tree,edit_frac):
     # get total simulation time
     total_time = tree.get_time(tree.leaves[0])
     # calculate necessary mutation rate
-    mutation_rate = -(np.log(1 - edit_frac) / total_time) * .9
+    mutation_rate = 1 - (1 - edit_frac) ** (1 / total_time)
     return mutation_rate
 
 def identify_best_solver(results,group,metric = "rf",max = False):
@@ -122,7 +122,7 @@ def eval_tree(param):
         reconstructed_tree.priors = {i:state_priors for i in range (param["characters"])}
     solvers[param["solver"]].solve(reconstructed_tree,logfile = None)
     # Calculate metrics
-    triplets = cas.critique.compare.triplets_correct(tree, reconstructed_tree, 
+    triplets = cas.critique.compare.triplets_correct(tree, reconstructed_tree,
                                                      number_of_trials=1000,min_triplets_at_depth=100)
     mean_triplets = np.mean(list(triplets[0].values())) 
     rf, rf_max = cas.critique.compare.robinson_foulds(tree, reconstructed_tree)
