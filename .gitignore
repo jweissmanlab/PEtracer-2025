@@ -188,7 +188,7 @@ cython_debug/
 
 # notinclude json files within subfolder merlin_parameters:
 !merlin_parameters/**/*.json
-
+!merlin_parameters/**/*.csv
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
