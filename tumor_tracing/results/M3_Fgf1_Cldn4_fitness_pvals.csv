@@ -1,0 +1,17 @@
+group1,group2,pval
+Fgf1+/Cldn4+,Fgf1+/Cldn4+,1.0
+Fgf1+/Cldn4+,Fgf1+/Cldn4-,1.8626207811455062e-10
+Fgf1+/Cldn4+,Fgf1-/Cldn4+,8.643954085043507e-11
+Fgf1+/Cldn4+,Fgf1-/Cldn4-,1.617096244505581e-26
+Fgf1+/Cldn4-,Fgf1+/Cldn4+,1.8626207811455062e-10
+Fgf1+/Cldn4-,Fgf1+/Cldn4-,1.0
+Fgf1+/Cldn4-,Fgf1-/Cldn4+,0.04382640945060274
+Fgf1+/Cldn4-,Fgf1-/Cldn4-,0.01775572433467603
+Fgf1-/Cldn4+,Fgf1+/Cldn4+,8.643954085043507e-11
+Fgf1-/Cldn4+,Fgf1+/Cldn4-,0.04382640945060274
+Fgf1-/Cldn4+,Fgf1-/Cldn4+,1.0
+Fgf1-/Cldn4+,Fgf1-/Cldn4-,3.2139301075896826e-26
+Fgf1-/Cldn4-,Fgf1+/Cldn4+,1.617096244505581e-26
+Fgf1-/Cldn4-,Fgf1+/Cldn4-,0.01775572433467603
+Fgf1-/Cldn4-,Fgf1-/Cldn4+,3.2139301075896826e-26
+Fgf1-/Cldn4-,Fgf1-/Cldn4-,1.0
