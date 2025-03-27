@@ -1,0 +1,6 @@
+{
+    "cluster": "sbatch --mem={cluster.mem} -A {cluster.account} -p {cluster.partition} -n {cluster.n} -t {cluster.time} --exclude {cluster.exclude} -o {cluster.out} -e {cluster.err} ",
+    "cluster_config": "/lab/weissman_imaging/puzheng/Softwares/Weissman_MERFISH_Scripts/merlin_parameters/slurm/MF9_cluster_config.json",
+    "nodes": 150,
+    "latency_wait": 100
+}

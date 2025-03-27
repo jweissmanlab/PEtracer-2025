@@ -1,0 +1,99 @@
+{
+    "__default__" : {
+        "account" : "weissman",
+        "time" : "12:00:00",
+        "n" : 1,
+        "partition" : "weissman",
+        "mem" : 10000,
+        "exclude": "c4b15",
+        "out" : "/lab/weissman_imaging/puzheng/slurm_reports/MERLin_Jobs/%j.stdout",
+        "err" : "/lab/weissman_imaging/puzheng/slurm_reports/MERLin_Jobs/%j.stderr"
+    },
+    "AdaptiveFilterBarcodes" : {
+        "mem" : 25000
+    },
+    "CleanCellBoundaries" : {
+        "mem" : 5000
+    },
+    "CombineCleanedBoundaries" : {
+        "mem" : 5000
+    },
+    "Decode" : {
+        "mem" : 10000
+    },
+    "DeconvolutionPreprocess" : {
+        "mem" : 3000
+    },
+    "ExportBarcodes" : {
+        "mem" : 20000
+    },
+    "ExportCellMetadata" : {
+        "mem" : 20000
+    },
+    "ExportPartitionedBarcodes" : {
+        "mem" : 15000
+    },
+    "ExportSumSignals" : {
+        "mem" : 15000
+    },
+    "FiducialCorrelationWarp" : {
+        "mem" : 25000
+    },
+    "FilterBarcodes" : {
+        "mem" : 15000
+    },
+    "GenerateAdaptiveThreshold" : {
+        "mem" : 60000
+    },
+    "GenerateMosaic" : {
+        "mem" : 15000
+    },
+    "Optimize1" : {
+        "mem" : 8000
+    },
+    "Optimize2" : {
+        "mem" : 8000
+    },
+    "Optimize3" : {
+        "mem" : 8000
+    },
+    "Optimize4" : {
+        "mem" : 8000
+    },
+    "Optimize5" : {
+        "mem" : 8000
+    },
+    "Optimize6" : {
+        "mem" : 8000
+    },
+    "Optimize7" : {
+        "mem" : 8000
+    },
+    "Optimize8" : {
+        "mem" : 8000
+    },
+    "Optimize9" : {
+        "mem" : 8000
+    },
+    "Optimize10" : {
+        "mem" : 8000
+    },
+    "PartitionBarcodes" : {
+        "mem" : 8000
+    },
+    "PlotPerformance" : {
+        "mem" : 150000
+    },
+    "RefineCellDatabases" : {
+        "mem" : 5000
+    },
+    "SimpleGlobalAlignment" : {
+        "mem" : 3000
+    },
+    "SumSignals" : {
+        "mem" : 3000
+    },
+    "CellPoseSegment" : {
+        "mem" : 10000
+    }
+}
