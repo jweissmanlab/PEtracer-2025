@@ -48,20 +48,6 @@ for site in edit_ids:
 # MERFISH parameters
 min_edit_prob = 0.7
 default_decoder = "v4_edit_decoder.pkl"
-img_paths = {
-    "preedited_merfish_invitro": {
-        "path": "/lab/weissman_imaging/puzheng/PE_LT/20240426-fullyEdited4T1_ingel_IntBCv2_combinedEditv3/",
-        "analysis": "/lab/weissman_imaging/wcolgan/MERFISH_Data/20240426-fullyEdited4T1_ingel_IntBCv2_combinedEditv3/Analysis/",
-        "file_pattern": "{series}/Conv_zscan_{fov:02d}.dax"},
-    "preedited_merfish_invivo": {
-        "path": "/lab/weissman_imaging/puzheng/PE_LT/20240424-F242dpec_T7afterMerfish/",
-        "analysis": "/lab/weissman_imaging/MERFISH_Data/wcolgan/20240424-F242dpec_T7afterMerfish/Analysis/",
-        "file_pattern": "{series}/Conv_zscan_{fov:03d}.dax"},
-    "preedited_merfish_zombie": {
-        "path": "/lab/weissman_imaging/puzheng/PE_LT/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/",
-        "analysis": "/lab/weissman_imaging/wcolgan/MERFISH_Data/20240508-4T1fullyEdited_zombie_IntBCv2new_editv3/Analysis/",
-        "file_pattern": "{series}/Conv_zscan_{fov:02d}.dax"},
-}
 fov_size = 246.528
 
 # Default colors
@@ -105,7 +91,79 @@ full_edit_cmap = mcolors.ListedColormap(["white","lightgray"] + list(discrete_cm
 # Preedited clone colors
 preedited_clone_colors = {"0":"lightgray","1":"#CD2626","2":"#FFE600","3":"#009E73","4":"#1874CD"}
 
-# Default style
+subtype_palette = {
+    'Malignant': colors[1],
+    'ARG1 macrophage': colors[2],
+    'CD11c macrophage': colors[6],
+    'ALOX15 macrophage': colors[15],
+    'Alveolar macrophage': colors[20],
+    'Exhausted CD8 T cell' : colors[9],
+    'CD4 T cell' : colors[18],
+    'Treg' : colors[12],
+    'B cell': colors[8],
+    'cDC': colors[16],
+    'Neutrophil': colors[7],
+    'NK': colors[11],
+    'pDC':colors[17],
+    'Endothelial': colors[10],
+    'CAP1 endothelial': colors[10],
+    'CAP2 endothelial': colors[18],
+    'Tumor endothelial': colors[15],
+    'Cancer fibroblast': colors[3],
+    'Alveolar fibroblast 1': colors[4],
+    'Alveolar fibroblast 2': colors[19],
+    'AT1/AT2': colors[5],
+    'Club cell': colors[14],
+}
+
+# subtype abbreviations
+subtype_abbr = {'Malignant': 'Malig.',
+    'Macrophage': 'Mac.',
+    'ARG1 macrophage': 'ARG1 Mac.',
+    'CD11c macrophage': 'CD11c Mac.',
+    'ALOX15 macrophage': 'ALOX15 Mac.',
+    'Alveolar macrophage':'Alveolar Mac.',
+    'Exhausted CD8 T cell': 'CD8+ T',
+    'CD4 T cell': 'CD4+ T',
+    'Treg': 'Treg',
+    'B cell': 'B cell',
+    'cDC': 'cDC',
+    'Neutrophil': 'Neu.',
+    'NK': 'NK',
+    'pDC': 'pDC',
+    'Endothelial': 'Endo.',
+    'CAP1 endothelial': 'CAP1 Endo.',
+    'CAP2 endothelial': 'CAP2 Endo.',
+    'Tumor endothelial': 'Tumor Endo.',
+    'Fibroblast': 'Fibro.',
+    'Cancer fibroblast': 'CAF',
+    'Alveolar fibroblast 1': 'AF1',
+    'Alveolar fibroblast 2': 'AF2',
+    'AT1/AT2': 'AT1/AT2',
+    'Club cell': 'Club cell'}
+
+# Phase palette
+phase_palette = {
+    'G0/G1': colors[13],
+    'G2/M': colors[10],
+    'S':  colors[5]
+}
+
+# Module palette
+module_palette = {
+    "1":'#009E73',
+    "2":'#FFE600',
+    "3":"#1874CD",
+    "4":'#CD2626'}
+
+
+def get_clade_palette(tdata,key = "clade"):
+    """Get a clade palette for a given tdata object."""
+    clades = sorted(tdata.obs[key].dropna().unique(), key=lambda x: int(x))
+    n_clades = len(clades)
+    return {str(clades[i]):discrete_cmap[n_clades][i] for i in range(n_clades)}
+
+
 def set_theme(figsize=(3, 3), dpi=200):
     """Set the default style for the plots"""
     plt.style.use(base_path / "plot.mplstyle")
@@ -115,9 +173,8 @@ def set_theme(figsize=(3, 3), dpi=200):
     plt.rcParams["axes.prop_cycle"] = plt.cycler(color=colors[1:])
 
 
-# Default paths
 def get_paths(folder):
-    """Get the paths for the data and plots folders"""
+    """Get the paths for the data, plots, and results folders"""
     folder = Path(folder)
     if "/" in str(folder):
         base_path = folder.parent

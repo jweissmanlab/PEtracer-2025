@@ -11,11 +11,11 @@ import seaborn as sns
 import shapely as shp
 import geopandas as gpd
 import pandas as pd
+
 from matplotlib_scalebar.scalebar import ScaleBar
 from reportlab.graphics import renderPDF
 from reportlab.lib.utils import ImageReader
 from svglib.svglib import svg2rlg
-
 from .tree import hamming_distance
 from .utils import save_plot
 
@@ -67,26 +67,34 @@ def plot_polygons(img = None,cells = None,extent = None,crop = None,color = "non
                            ,box_alpha=0 if img is not None else .8))
 
 
-def distance_comparison_scatter(plot_name,plots_path, clone_tdata, x = "tree", y = "spatial", total_time = 6, mm = False, groupby = "sample",sample_n = 20000,figsize = (1.8,1.7)):
+def distance_comparison_scatter(plot_name,plots_path, clone_tdata, x = "tree", y = "spatial", mm = False, 
+    groupby = "sample",sample_n = 10000,figsize = (1.8,1.7)):
+    """Scatter plot comparing pairwise distances using two distance metrics."""
+    metric_names = {"tree_distances": "Phylo. distance (days)",
+                    "spatial_distances": "Spatial distance (um)",
+                    "character_distances": "Character distance"}
+    if mm:
+        metric_names["spatial_distances"] = "Spatial distance (mm)"
     # Get distances
     clone_tdata = clone_tdata[clone_tdata.obs.tree.notnull()].copy()
+    sample_n = min(clone_tdata.n_obs**2,sample_n)
+    connect_key = None
     if x  == "spatial" or y == "spatial":
-        sample_n = min(clone_tdata.n_obs**2,sample_n)
         py.tl.distance(clone_tdata,key = "spatial",metric = "euclidean",sample_n = sample_n,update=False)
-    if x == "character":
-        sample_n = min(clone_tdata.n_obs**2,sample_n)
-        py.tl.distance(clone_tdata,key = "characters",metric = hamming_distance,key_added="character",sample_n = sample_n,update=False)
-    if x == "tree":
-        py.tl.tree_distance(clone_tdata,depth_key="time",connect_key=y,update=False)
-    if y == "character":
-        py.tl.distance(clone_tdata,key = "characters",metric = hamming_distance,key_added="character",connect_key=x)
-    if y == "tree":
-        py.tl.tree_distance(clone_tdata,depth_key="time",connect_key=x,update=False)
+        connect_key = "spatial"
+    if x == "character" or y == "character":
+        if connect_key is None:
+            connect_key = "character"
+            py.tl.distance(clone_tdata,key = "characters",metric = hamming_distance,key_added="character",sample_n = sample_n,update=False)
+        else:
+            py.tl.distance(clone_tdata,key = "characters",metric = hamming_distance,key_added="character",connect_key = connect_key,update=False)
+    if x == "tree" or y == "tree":
+        py.tl.tree_distance(clone_tdata,depth_key="time",connect_key=connect_key, tree = "tree", update = False)
     distances = py.tl.compare_distance(clone_tdata,dist_keys = [x,y],groupby = groupby)
-    if mm and x == "spatial" or y == "spatial":
+    if mm and (x == "spatial" or y == "spatial"):
         distances["spatial_distances"] = distances["spatial_distances"]/1000
     if x == "tree" or y == "tree":
-        distances["tree_distances"] = distances["tree_distances"] * total_time/2
+        distances["tree_distances"] = distances["tree_distances"]/2
     x = x + "_distances"
     y = y + "_distances"
     # Plot
@@ -95,16 +103,9 @@ def distance_comparison_scatter(plot_name,plots_path, clone_tdata, x = "tree", y
     fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
     sns.scatterplot(data = distances,x = x,y = y,hue = "density",
                     palette = "viridis",alpha = .5,s = 10,legend = False)
-    # set number of x ticks
-    ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
-    ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
-    if x == "tree_distances":
-        plt.xlabel("Phylo. distance (days)")
-    if y == "spatial_distances":
-        if mm:
-            plt.ylabel("Spatial distance (mm)")
-        else:
-            plt.ylabel("Spatial distance (um)")
-    if y == "character_distances":
-        plt.ylabel("Character distance")
+    if distances[y].max() < 10:
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
+    ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins='auto', min_n_ticks=4))
+    plt.ylabel(metric_names[y])
+    plt.xlabel(metric_names[x])
     save_plot(fig,plot_name,plots_path,rasterize=True)

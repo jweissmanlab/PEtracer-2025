@@ -250,7 +250,7 @@ def estimate_leaf_fitness(tdata,tree = "tree",depth_key = "depth",key_added = "f
     tdata.obs[key_added] = tdata.obs_names.map(fitnesses)
     if copy:
         return tdata
-    
+
 def n_extant(tdata, depth_key, groupby = None, bins = 20, tree = "tree"):
     # Get nodes
     if groupby is None:

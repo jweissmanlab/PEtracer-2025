@@ -22,6 +22,7 @@ __pycache__/
 *.html
 *.out
 *.npy
+*.gif
 
 # development files
 dev.ipynb
@@ -30,8 +31,9 @@ dev.ipynb
 geo_upload
 sra_upload
 figures
+tumor_tracing/archive/
 
-# large refernce files
+# large reference files
 reference/cellranger/
 
 .DS_Store
