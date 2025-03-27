@@ -27,10 +27,9 @@ __pycache__/
 dev.ipynb
 
 # Extra directories
-LWK_pegArray_competition_date
-Fig2
-Fig3
-FigSI
+geo_upload
+sra_upload
+figures
 
 # large refernce files
 reference/cellranger/
