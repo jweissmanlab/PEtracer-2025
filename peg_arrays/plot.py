@@ -1,30 +1,23 @@
 """Code to generate peg array plots."""
 
-import sys
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import petracer
 import seaborn as sns
-import matplotlib.pyplot as plt
-from pathlib import Path
-import pandas as pd
-import multiprocessing as mp
-
-# Configure
-results_path = Path(__file__).parent / "results"
-plots_path = Path(__file__).parent / "plots"
-base_path = Path(__file__).parent.parent
-ref_path = base_path / "reference"
-sys.path.append(str(base_path))
-plt.style.use(base_path / 'plot.mplstyle')
-
-from petracer.config import discrete_cmap,edit_ids,site_ids
+from petracer.config import discrete_cmap, site_ids
 from petracer.utils import save_plot
+
+base_path, data_path, plots_path, results_path = petracer.config.get_paths("peg_arrays")
+petracer.config.set_theme()
+
 
 ## Define constants
 site_colors = {"RNF2":"#B3E6FF","HEK3":"#99A3FF","EMX1":"#66FFFF"}
 
 # Helper functions
 def normalized_entropy(distribution):
+    """Calculate normalized entropy of a distribution."""
     # Remove zero probabilities for log calculation
     distribution = distribution[distribution > 0]
     # Calculate entropy
@@ -34,15 +27,19 @@ def normalized_entropy(distribution):
     normalized_entropy = entropy / np.log2(num_states)
     return normalized_entropy
 
+
 def load_edit_fracs():
+    """Load peg array edit fractions."""
     alleles = pd.read_csv(results_path / "peg_array_allele_counts.csv",keep_default_na=False)
     edit_fracs = alleles.query("~edit.isin(['None','Other'])").copy()
     edit_fracs["totalCount"] = edit_fracs.groupby(["sample","site"])["readCount"].transform("sum") 
     edit_fracs["edit_frac"] = (edit_fracs["readCount"] / edit_fracs["totalCount"]) * 100
     return edit_fracs
 
+
 ## Plotting functions
 def array_installation_barplot(plot_name,edit_fracs,site,version,figsize):
+    """Generate barplot for array installation."""
     fig, axes = plt.subplots(1,3,figsize=figsize,dpi = 600, layout = "constrained",sharey=True)
     for i in range(1,4):
         ax = axes[i-1]
@@ -68,8 +65,10 @@ def array_installation_barplot(plot_name,edit_fracs,site,version,figsize):
     fig.get_layout_engine().set(wspace=0.04,w_pad=0)
     save_plot(fig,plot_name,plots_path)
 
-def final_array_installation_barplot(plot_name,edit_fracs,site,figsize = (1.3,1.9)): 
-    fig, ax = plt.subplots(figsize=(1.3,1.9),dpi = 600)
+
+def final_array_installation_barplot(plot_name,edit_fracs,site,figsize = (1.3,1.9)):
+    """Generate final array installation barplot."""
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600)
     site_edit_frac = edit_fracs.query("site == @site & array == '24mer'").copy()
     site_edit_frac = site_edit_frac.sort_values("position")
     entropy = normalized_entropy(site_edit_frac.groupby("edit")["edit_frac"].mean().values/100)
