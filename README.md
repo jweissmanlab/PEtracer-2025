@@ -9,8 +9,22 @@ This repository contains the code to reproduce all analyses and figures from the
 # Data availability
 
 * Processed data is available on [Figshare](https://figshare.com/s/8e9d573deca3d44235fe)
-* Single-cell RNA-seq data is available on [GEO](Add link here)
-* All other sequencing data is available on [SRA](Add link here)
+* Single-cell RNA-seq data is available on [GEO](Add GEO link)
+* All other sequencing data is available on [SRA](Add SRAN link)
+
+# Simulation
+
+The [simulation](https://github.com/jweissmanlab/PETracer_Paper/tree/main/simulation) directory 
+contains code for simulating lineage tracing data with a variety of parameters. To run simulations:
+
+```bash 
+python simulation/simulate.py
+```
+
+To generate plots:
+```bash
+python simulation/plot.py
+```
 
 # Image processing
 
@@ -22,7 +36,7 @@ static barcodes serving as independent validation of phylogenetic relationships.
 
 ### Data processing
 
-Data processing was performed on Linux HPC cluster with SLURM, Python 3.11, and Cellranger 7.1.0 installed.
+Data processing was performed on a Linux HPC cluster with SLURM, Python 3.11, and Cellranger 7.1.0 installed.
 Processed files can be generated with the following steps:
 
 1. Run Cellranger and call alleles using bam files.
@@ -32,7 +46,7 @@ sbatch barcoded_tracing/call_alleles.slurm
 ```
 2. **process_10x.ipynb** - performs quality control, phylogenetic reconstruction, and processing of barcode data.
 
-after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq/manifest.txt) from GEO and placing then in the [barcoded_tracing/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq) directory.
+after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq/manifest.txt) from [GEO](Add GEO link) and placing then in the [barcoded_tracing/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq) directory.
 
 ### Analysis
 
@@ -43,8 +57,13 @@ python barcoded_tracing/plot.py
 ```
 after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [colony_tracing/data](https://github.com/jweissmanlab/PETracer_Paper/tree/main/colony_tracing/data) directory:
 
-* colony_tracing.h5td
-* colony_polygons.json
+* barcoded_tracing_clone_1.h5td
+* barcoded_tracing_clone_2.h5td
+* barcoded_tracing_clone_3.h5td
+* barcoded_tracing_clone_4.h5td
+* barcoded_tracing_clone_5.h5td
+* barcoded_tracing_clone_6.h5td
+* barcoded_tracing_alleles.csv
 
 # Colony lineage tracing
 

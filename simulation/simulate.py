@@ -1,22 +1,21 @@
 """Code for simulating lineage tracing data and reconstructing trees."""
-
-import sys
-import numpy as np
-import pandas as pd
-import cassiopeia as cas
 import multiprocessing as mp
 from itertools import product
-from pathlib import Path
+
+import cassiopeia as cas
+import numpy as np
+import pandas as pd
+import petracer
+from petracer.config import log_path, threads
 from tqdm.auto import tqdm
 
-# Configure paths
-results_path = Path(__file__).parent / "results"
-data_path = Path(__file__).parent / "data"
-base_path = Path(__file__).parent.parent
-sys.path.append(str(base_path))
+base_path, data_path, plots_path, results_path = petracer.config.get_paths("simulation")
+petracer.config.set_theme()
+
+np.random.seed(42)
 
 # Load source
-from petracer.config import threads, log_path
+
 
 # Load config
 logfile = None if log_path is None else results_path / "log"
@@ -37,6 +36,7 @@ solvers = {"nj":cas.solver.NeighborJoiningSolver(cas.solver.dissimilarity.weight
 
 # Lineage simulator
 def lineage_simulator(num_extant):
+    """Simulate a lineage tree."""
     return cas.sim.BirthDeathFitnessSimulator(
         birth_waiting_distribution = lambda scale: np.random.lognormal(mean = np.log(scale),sigma = .5),
         initial_birth_scale = 1,
@@ -48,6 +48,7 @@ def lineage_simulator(num_extant):
 
 # Tracing simulator
 def tracing_simulator(characters, edit_rate, missing_rate, state_priors):
+    """Simulate lineage tracing data."""
     return cas.sim.Cas9LineageTracingDataSimulator(
         number_of_cassettes = characters,
         size_of_cassette = 1,
@@ -59,6 +60,7 @@ def tracing_simulator(characters, edit_rate, missing_rate, state_priors):
 
 # Helper functions
 def normalized_entropy(distribution):
+    """Calculate normalized entropy of a distribution."""
     # Remove zero probabilities for log calculation
     distribution = distribution[distribution > 0]
     # Calculate entropy
@@ -68,7 +70,9 @@ def normalized_entropy(distribution):
     normalized_entropy = entropy / np.log2(num_states)
     return normalized_entropy
 
+
 def generate_state_distribution(n_states,entropy):
+    """Generate a state distribution with a given entropy."""
     # iterate through exponential distributions
     for i in np.arange(0,30,.01):
         dist = np.logspace(i,0,n_states,base = np.e)
@@ -76,15 +80,19 @@ def generate_state_distribution(n_states,entropy):
         # return if correct entropy
         if abs(entropy - normalized_entropy(dist)) < .01:
             return dist
-        
+
+
 def edit_frac_to_mutation_rate(tree,edit_frac):
+    """Calculate mutation rate from edit fraction."""
     # get total simulation time
     total_time = tree.get_time(tree.leaves[0])
     # calculate necessary mutation rate
     mutation_rate = 1 - (1 - edit_frac) ** (1 / total_time)
     return mutation_rate
 
+
 def identify_best_solver(results,group,metric = "rf",max = False):
+    """Identify the best solver for each group."""
     results = results.copy()
     average_value = results.groupby(group + ['solver'], as_index=False)[metric].mean()
     if max:
@@ -99,6 +107,7 @@ def identify_best_solver(results,group,metric = "rf",max = False):
 
 # Tree evaluation
 def eval_tree(param):
+    """Evalulate tracing a tree with a given set of parameters."""
     np.random.seed(int(param["iteration"]))
     # Simulate the tree
     lineage_sim = lineage_simulator(int(param["size"]))
@@ -136,8 +145,9 @@ def eval_tree(param):
             result[key] = param[key]
     return result
 
-# Simulate trees varying the number of states and the entropy
+
 def states_vs_entropy_simulation(threads = 30):
+    """Simulate trees varying the number of states and the entropy."""
     # Define parameters
     params = {"solver":["nj","upgma","greedy"],
         "size":[1000],
@@ -160,8 +170,9 @@ def states_vs_entropy_simulation(threads = 30):
     results["best_rf"] = identify_best_solver(results, ["entropy", "states"], metric = "rf")
     results.to_csv(results_path / "states_vs_entropy_simulation.csv",index = False)
 
-# Simulate trees varying the number of states and the edit fraction
+
 def states_vs_frac_simulation(threads = 30):
+    """Simulate trees varying the number of states and the edit fraction."""
     # Define parameters
     params = {"solver":["nj","upgma","greedy"],
         "size":[1000],
@@ -183,8 +194,9 @@ def states_vs_frac_simulation(threads = 30):
     results["best_rf"] = identify_best_solver(results, ["entropy", "states"], metric = "rf")
     results.to_csv(results_path / "states_vs_frac_simulation.csv",index = False)
 
-# Simulate fraction of branches with edit
+
 def edit_frac_simulation(num_simulations=100,max_generations=100,max_characters=120):
+    """Simulate the fraction of branches with edit."""
     results = []
     for edit_rate in np.linspace(0, .3, 301):
         edits = np.zeros((num_simulations,max_generations+1,max_characters+1), dtype=bool)
@@ -205,8 +217,9 @@ def edit_frac_simulation(num_simulations=100,max_generations=100,max_characters=
     results = pd.DataFrame(results)
     return results 
 
-# Simulate minimum number of characters for fraction of branches with edit
-def min_characters_simulation(min_edit_fracs = [.7,.8,.9], num_simulations = 10):
+
+def min_characters_simulation(min_edit_fracs = (.7,.8,.9), num_simulations = 10):
+    """Simulate the minimum number of characters for fraction of branches with edit."""
     results = []
     for iteration in range(num_simulations):
         edit_fracs = edit_frac_simulation(num_simulations=10,max_generations=30)
@@ -219,8 +232,9 @@ def min_characters_simulation(min_edit_fracs = [.7,.8,.9], num_simulations = 10)
     results = pd.concat(results)
     results.to_csv(results_path / "min_characters_simulation.csv",index = False)
 
-# Simulate optimal edit rate for fraction of sites with edit
-def edit_rate_simulation(min_edit_fracs = [.5,.6,.7,.8,.9], num_simulations = 10):
+
+def edit_rate_simulation(min_edit_fracs = (.5,.6,.7,.8,.9), num_simulations = 10):
+    """Simulate the optimal edit rate for fraction of sites with edit."""
     results = []
     for iteration in range(num_simulations):
         edit_fracs = edit_frac_simulation(num_simulations=10,max_characters=61)
@@ -233,8 +247,9 @@ def edit_rate_simulation(min_edit_fracs = [.5,.6,.7,.8,.9], num_simulations = 10
     results = pd.concat(results)
     results.to_csv(results_path / "edit_rate_simulation.csv",index = False)
 
-# Simulate trees sweeping the other parameters
+
 def parameter_sweep_simulation(threads = 30):
+    """Simulate trees sweeping the other parameters."""
     # Define parameters
     default_params = {"solver":["nj","upgma","greedy"],
         "tree_simulator":["lognormal_fit"],
@@ -268,18 +283,20 @@ def parameter_sweep_simulation(threads = 30):
     results.to_csv(results_path / "parameter_sweep_simulation.csv",index = False)
 
 def get_indel_hnorm():
+    """Calculate the normalized entropy of the indel distribution."""
     indel_dist = pd.read_csv(data_path / "indel_distribution.tsv", index_col=0,sep="\t")
     return normalized_entropy(indel_dist["probability"])
+
 
 # Run simulations
 if __name__ == "__main__":
     print("Indel distribution normalized entropy: ",get_indel_hnorm())
     print("Simulating trees varying the number of states and the entropy")
-    #states_vs_entropy_simulation(threads = threads)
+    states_vs_entropy_simulation(threads = threads)
     print("Simulating trees varying the number of states and the edit fraction")
-    #states_vs_frac_simulation(threads = threads)
+    states_vs_frac_simulation(threads = threads)
     print("Simulating trees sweeping the other parameters")
-    #parameter_sweep_simulation(threads = threads)
+    parameter_sweep_simulation(threads = threads)
     print("Simulating minimum number of characters for large trees")
     min_characters_simulation()
     print("Simulating optimal edit rate vs experiment length")

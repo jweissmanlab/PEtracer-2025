@@ -1,22 +1,17 @@
-import sys
-import numpy as np
-import pandas as pd
-import seaborn as sns
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import matplotlib.lines as mlines
-from pathlib import Path
-
-# Configure
-results_path = Path(__file__).parent / "results"
-plots_path = Path(__file__).parent / "plots"
-base_path = Path(__file__).parent.parent
-sys.path.append(str(base_path))
-plt.style.use(base_path / 'plot.mplstyle')
-
-# Load source
+import numpy as np
+import pandas as pd
+import petracer
+import seaborn as sns
+from petracer.config import colors, discrete_cmap, sequential_cmap
 from petracer.utils import save_plot
-from petracer.config import colors, sequential_cmap, discrete_cmap
+
+base_path, data_path, plots_path, results_path = petracer.config.get_paths("simulation")
+petracer.config.set_theme()
+
+np.random.seed(42)
 
 # Define constants
 metric_names = {"rf":"Robinson-Foulds distance",
@@ -38,8 +33,9 @@ solver_colors = colors[1:3] + [colors[4]]
 solver_colors = {solver: solver_colors[i] for i, solver in enumerate(solver_names.keys())}
 
 
-# Heatmap comparing two parameters
+# Plotting functions
 def metric_heatmap(data,x,y,metric = "rf",vmin = 0,vmax = 1,figsize = (2.2,2.2)):
+    """Plot a heatmap comparing two parameters."""
     data = data.copy()
     data["edit_frac"] = (data["edit_frac"] * 100).astype(int)
     data["detection_rate"] = (100 - data["missing_rate"] * 100).astype(int)
@@ -54,8 +50,9 @@ def metric_heatmap(data,x,y,metric = "rf",vmin = 0,vmax = 1,figsize = (2.2,2.2))
     ax.set_ylabel(param_names[y])
     save_plot(fig, f"{metric}_heatmap_{x}_vs_{y}", plots_path)
 
-# Parameter sweep line plots
-def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","detection_rate"],figsize=(6,2.2)):
+
+def parameter_lineplots(data,metric,params = ("size","edit_frac","characters","detection_rate"),figsize=(6,2.2)):
+    """Line plots comparing solvers across a range of parameters."""
     data = data.query("solver.isin(@solver_names.keys())").copy()
     data["edit_frac"] = (data["edit_frac"] * 100).astype(int)
     data["detection_rate"] = (100 - data["missing_rate"] * 100).astype(int)
@@ -75,7 +72,7 @@ def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","d
         sns.scatterplot(x=param, y=metric, hue="solver", data=mean_data.query("indel_dist"),edgecolor = "black",
                     palette=solver_colors, ax=axes[i], marker ="X", legend=False, s=80, zorder=3,linewidth = .5)
         axes[i].axvline(param_defaults[param],color='gray', linestyle='--', linewidth=1,zorder = -1)
-        axes[i].set_ylim(metric_min, metric_max) 
+        axes[i].set_ylim(metric_min, metric_max)
         axes[i].set_xlabel(param_names[param])
         if i == 0:
             axes[i].set_ylabel(metric_names[metric])
@@ -94,8 +91,9 @@ def parameter_lineplots(data,metric,params = ["size","edit_frac","characters","d
                title="LM distribution",ncol = 2,columnspacing = 1)
     save_plot(fig, f"{metric}_parameter_sweep_lineplot", plots_path)
 
-# Min characters line plot
+
 def min_characters_lineplot(plot_name,figsize=(2, 2)):
+    """Line plot showing the minimum number of characters needed to achieve a certain edit fraction."""
     fig, ax = plt.subplots(figsize=figsize)
     data = pd.read_csv(results_path / "min_characters_simulation.csv")
     data["cells"] = 2**data["generations"]
@@ -108,8 +106,9 @@ def min_characters_lineplot(plot_name,figsize=(2, 2)):
     ax.xaxis.set_major_locator(ticker.FixedLocator([1e3, 1e6, 1e9]))
     save_plot(fig,plot_name,plots_path)
 
-# Optimal rate line plot
+
 def edit_rate_lineplot(plot_name,log = True,figsize = (3,2)):
+    """Line plot showing the optimal edit rate for different edit fractions."""
     edit_rate = pd.read_csv(results_path / "edit_rate_simulation.csv")
     edit_rate["edit_pct"] = (edit_rate["site_edit_frac"] * 100).astype(int)
     fig, ax = plt.subplots(figsize = figsize,layout = "constrained",dpi = 600)
@@ -125,8 +124,9 @@ def edit_rate_lineplot(plot_name,log = True,figsize = (3,2)):
     plt.legend(title = "Edit sites\nwith LM (%)",bbox_to_anchor=(1, 1), loc='upper left')
     save_plot(fig, plot_name, plots_path)
 
-# Fraction of edit sites over time line plot
+
 def frac_over_time_lineplot(plot_name,figsize=(2.8,2)):
+    """Line plot showing the fraction of edited sites over time."""
     # Load data
     results = pd.read_csv(results_path / "frac_over_times_simulation.csv")
     results["edit_pct"] = results["site_edit_frac"] * 100
@@ -139,17 +139,18 @@ def frac_over_time_lineplot(plot_name,figsize=(2.8,2)):
     plt.legend(title = "Edit rate\n(edits/day)",bbox_to_anchor=(1, 1), loc='upper left')
     save_plot(fig,plot_name,plots_path)
 
-# RF vs triplets scatter plot
+
 def rf_vs_triplets_scattterplot(plot_name,figsize = (2.2,2.2)):
+    """Scatter plot showing the relationship between RF and triplets."""
     fig,ax = plt.subplots(figsize=figsize,dpi = 600,layout = "constrained")
     sns.scatterplot(data=param_sweep,x="rf",y="triplets",s = 10,alpha = 0.8,ax=ax,color = colors[1])
     sns.regplot(data=param_sweep,x="rf",y="triplets",scatter=False,color="black",line_kws={"linewidth":1},ax=ax)
-    # add r2 value to plot
     r2 = np.corrcoef(param_sweep["rf"],param_sweep["triplets"])[0,1]**2
     plt.text(0.6,0.95,f"$r^2$ = {r2:.2f}")
     plt.xlabel(metric_names["rf"])
     plt.ylabel(metric_names["triplets"])
     save_plot(fig,plot_name,plots_path,rasterize=True)
+
 
 if __name__ == "__main__":
     # Load data
@@ -167,6 +168,4 @@ if __name__ == "__main__":
     edit_rate_lineplot("log_edit_rate_lineplot",log = True,figsize = (3.1,2))
     edit_rate_lineplot("edit_rate_lineplot",log = False,figsize = (3,2))
     rf_vs_triplets_scattterplot("rf_vs_triplets_scatterplot",figsize = (2,2))
-    
-    
 
