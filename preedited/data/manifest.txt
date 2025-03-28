@@ -1,0 +1,14 @@
+4T1_preedited/
+lineage_merfish_bits.csv
+manifest.txt
+preedited_10x_invitro_alleles.csv
+preedited_10x_invitro_cells.csv
+preedited_10x_invitro.h5ad
+preedited_barcode_mapping.csv
+preedited_clone_whitelist.csv
+preedited_merfish_invitro_alleles.csv
+preedited_merfish_invitro_cells.json
+preedited_merfish_invivo_alleles.csv
+preedited_merfish_invivo_cells.json
+preedited_merfish_zombie_alleles.csv
+preedited_merfish_zombie_cells.json
