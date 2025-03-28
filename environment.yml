@@ -1,0 +1,32 @@
+name: petracer
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - ipykernel
+  - pip
+  - pip:
+      - seaborn
+      - matplotlib
+      - pandas
+      - anndata
+      - scanpy
+      - ipywidgets
+      - treedata
+      - ete3
+      - geopandas
+      - squidpy
+      - scipy
+      - scvi-tools
+      - argparse
+      - scikit-learn
+      - tqdm
+      - ffmpeg
+      - svglib
+      - statsmodels
+      - scikit_posthocs
+      - git+https://github.com/YosefLab/Cassiopeia@master#egg=cassiopeia-lineage
+      - git+https://github.com/YosefLab/pycea.git@main
+      - git+https://github.com/jweissmanlab/fishtank@main
+      - -e .

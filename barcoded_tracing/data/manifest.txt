@@ -1,0 +1,11 @@
+4T1_Pool1/
+4T1_Pool2/
+4T1_Pool3/
+barcoded_tracing_alleles.csv
+barcoded_tracing_clone_1.h5td
+barcoded_tracing_clone_2.h5td
+barcoded_tracing_clone_3.h5td
+barcoded_tracing_clone_4.h5td
+barcoded_tracing_clone_5.h5td
+barcoded_tracing_clone_6.h5td
+manifest.txt
