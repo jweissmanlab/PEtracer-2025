@@ -25,9 +25,29 @@ To generate simulation plots:
 ```bash
 python simulation/plot.py
 ```
+# 5nt insert selection
+
+The [insert_selection](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection) directory 
+contains code for processing and analyzing target site sequencing data used to determine the installation 
+efficiencies of all 1024 5nt insertions for each edit site.
+
+### Data processing
+
+@katieyost please fill the CRISPResso details
+
+2. **aggregate_crispresso.ipynb** - aggregate CRISPResso output files for all sites.
+3. **crosshyb.py** - estimate 5nt insert cross-hybridization
+
+### Analysis
+
+To generate insert selection plots:
+```bash
+python insert_selection/plot.py
+```
+
 # pegArray balance
 
-The [peg_arrays](https://github.com/jweissmanlab/PETracer_Paper/tree/main/eg_arrays) directory 
+The [peg_arrays](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays) directory 
 contains code for processing and analyzing target site sequencing data used to determine the LM installation 
 balance for various pegArrays.
 
@@ -48,7 +68,6 @@ To generate pegArray plots:
 ```bash
 python peg_arrays/plot.py
 ```
-
 
 # pegRNA variant kinetics
 
@@ -87,6 +106,14 @@ after processing the raw data or downloading the processed files from [Figshare]
 * B16F10_kinetics_alleles.csv
 * B16F10_kinetics_cells.csv
 * B16F10_kinetics.h5ad
+
+# Integration barcode design
+
+@zhengpuas47 please fill in this section.
+
+# Probe design
+
+@zhengpuas47 please fill in this section.
 
 # Image processing
 

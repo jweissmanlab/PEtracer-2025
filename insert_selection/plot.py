@@ -1,25 +1,29 @@
-import sys
-import numpy as np
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import matplotlib.lines as mlines
-from scipy.cluster.hierarchy import linkage, leaves_list
-from pathlib import Path
-
-# Configure
-results_path = Path(__file__).parent / "results"
-plots_path = Path(__file__).parent / "plots"
-base_path = Path(__file__).parent.parent
-sys.path.append(str(base_path))
-plt.style.use(base_path / 'plot.mplstyle')
-
-# Load source
+import numpy as np
+import pandas as pd
+import petracer
+import seaborn as sns
+from petracer.config import colors, discrete_cmap, edit_ids, edit_palette, sequential_cmap, site_names
 from petracer.utils import save_plot
-from petracer.config import colors, sequential_cmap, site_names, discrete_cmap, edit_ids, edit_palette
+from scipy.cluster.hierarchy import leaves_list, linkage
 
+base_path, data_path, plots_path, results_path = petracer.config.get_paths("insert_selection")
+petracer.config.set_theme()
+
+# Helper functions
+def organize_enrichment_data():
+    """Organize enrichment data for plotting"""
+    enrichment = pd.read_csv(data_path / "allele_matrix_normalized_stats_q30_20bpwindow.txt",sep = "\t")
+    enrichment["edit"] = enrichment.index
+    enrichment_long = pd.melt(enrichment[["edit","EMX1_log2FC","RNF2_log2FC","HEK3_log2FC"]],id_vars = ["edit"],var_name = "site",value_name = "log2FC")
+    enrichment_long["site"] = enrichment_long["site"].str.replace("_log2FC","")
+    enrichment_long.to_csv(results_path / "insert_screen_log2FC.csv",index = False)
+
+
+# Plotting functions
 def crosshyb_vs_length_lineplot(plot_name,y,y_label,figsize = (2,2)):
+    """Plot the crosshyb vs length lineplot"""
     results = pd.read_csv(results_path / "crosshyb_vs_length.csv")
     results["correct_pct"] = results["correct_frac"] * 100
     fig, ax = plt.subplots(figsize=figsize, dpi=600,layout="constrained")
@@ -28,6 +32,7 @@ def crosshyb_vs_length_lineplot(plot_name,y,y_label,figsize = (2,2)):
     ax.set_ylabel(y_label)
     plt.xticks(range(2,9));
     save_plot(fig, plot_name, plots_path)
+
 
 def crosshyb_heatmap(plot_name = None,site = "HEK3", metric = "free_energy",subset = None,highlight = None,
     lower = True,vmax = -12,vmin = -25,ticklabels = False,ax = None,figsize = (2,2)):
@@ -80,11 +85,41 @@ def crosshyb_heatmap(plot_name = None,site = "HEK3", metric = "free_energy",subs
     else:
         ax.spines['right'].set_visible(True)
         ax.spines['top'].set_visible(True)
-    if plot_name is not None:
-        save_plot(fig, plot_name, plots_path)
-        pass
-    else:
-        return ax
+    save_plot(fig, plot_name, plots_path)
+
+
+def insert_logfc_rankplots(figsize = (2.8,2)):
+    """Plot the rank of log2FC for each insert across sites"""
+    # Load data
+    results = pd.read_csv(results_path / "insert_screen_log2FC.csv")
+    results.sort_values("log2FC",ascending = False,inplace = True)
+    results["rank"] = results.groupby("site").cumcount() + 1
+    results.index = results["edit"].values
+    # Highlight inserts
+    top_inserts = pd.read_csv(results_path / "top_inserts.csv")
+    top_inserts.drop(columns = ["within_10%","final_20"],inplace = True)
+    top_inserts.rename(columns = {"insert":"edit"},inplace = True)
+    top_inserts["highlight"] = "top"
+    results = results.merge(top_inserts,on = ["site","edit"],how = "left").fillna("")
+    results.loc[results.edit == "GCTGC","highlight"] = "GCTGC"
+    results.loc[results.edit == "GTCAG","highlight"] = "GTCAG"
+    # Plot
+    for site in ["EMX1","RNF2","HEK3"]:
+        fig, ax = plt.subplots(figsize = (2.8,2),dpi = 600)
+        site_results = results.query("site == @site").sort_values("highlight",ascending = True)
+        label = site_results.query("rank <= 4 or rank >= 1021")["edit"].tolist()
+        label = label + ["GCTGC","GTCAG"]
+        palette = {"top":colors[5],"GCTGC":colors[2],"GTCAG":colors[1],"":"lightgrey"}
+        sns.scatterplot(data = site_results,x = "rank",y = "log2FC",hue = "highlight",linewidth = 0,palette = palette,s = 10,legend = False)
+        for edit in label:
+            row = site_results.query("edit == @edit").iloc[0]
+            plt.text(row["rank"],row["log2FC"],row["edit"],fontsize = 10,ha = "left",va = "bottom",color = palette[row["highlight"]])
+        plt.xlabel("Ranked 5nt insertion sequences")
+        plt.ylabel("Log$_2$-fold LM insertion\n efficiency to average")
+        plt.ylim(-7.5,3.5)
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(2))
+        save_plot(fig,f"{site}_insert_rankplot",plots_path)
+
 
 if __name__ == "__main__":
     crosshyb_vs_length_lineplot("free_energy_diff_vs_length","free_energy_diff","$\Delta G$ - on-target $\Delta G$")
@@ -99,3 +134,4 @@ if __name__ == "__main__":
                         lower=False,figsize = (2,2),vmax = vmax,vmin = vmin)
         crosshyb_heatmap(f"{site}_8_free_energy_diff",site,metric=metric,subset="final_8",highlight="final_8",
                         lower=True,figsize = (1.2,1.2),vmax = vmax,vmin = vmin,ticklabels=False)
+    insert_logfc_rankplots(figsize = (2.8,2))
