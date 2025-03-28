@@ -1,0 +1,5 @@
+name,method,file,whitelist
+intBC,expectation_maximization,/lab/weissman_imaging/4T1/reference/intBC_codebook_v2.csv,/lab/weissman_imaging/4T1/reference/tumor_integration_whitelist.txt
+HEK3,logistic_regression,/lab/weissman_imaging/4T1/reference/HEK3_weights_v2.csv,
+EMX1,logistic_regression,/lab/weissman_imaging/4T1/reference/EMX1_weights_v2.csv,
+RNF2,logistic_regression,/lab/weissman_imaging/4T1/reference/RNF2_weights_v2.csv,

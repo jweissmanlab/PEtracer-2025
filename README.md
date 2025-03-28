@@ -6,6 +6,15 @@ This repository contains the code to reproduce all analyses and figures from the
 ![](https://github.com/jweissmanlab/PETracer_Paper/blob/main/img.png)
 # Setup
 
+### Python environment
+
+```bash
+conda env create --file environment.yml
+conda activate petracer
+ipython kernel install --user --name petracer
+```
+The [environment.lock.yml](https://github.com/jweissmanlab/PETracer_Paper/tree/main/environment.lock.yml) file can be used to recreate the environment with the exact package versions used in the paper.
+
 # Data availability
 
 * Processed data is available on [Figshare](https://figshare.com/s/8e9d573deca3d44235fe)
@@ -25,6 +34,14 @@ To generate simulation plots:
 ```bash
 python simulation/plot.py
 ```
+# Prime editing strategy selection
+
+The [strategy_selection](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection) directory 
+contains code for processing and analyzing amplicon sequencing data used to select edit sites
+and editing strategies for the PETracer system.
+
+@katieyost please fill in this section
+
 # 5nt insert selection
 
 The [insert_selection](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection) directory 
@@ -33,7 +50,7 @@ efficiencies of all 1024 5nt insertions for each edit site.
 
 ### Data processing
 
-@katieyost please fill the CRISPResso details
+@katieyost please fill in the CRISPResso details
 
 2. **aggregate_crispresso.ipynb** - aggregate CRISPResso output files for all sites.
 3. **crosshyb.py** - estimate 5nt insert cross-hybridization
@@ -44,6 +61,22 @@ To generate insert selection plots:
 ```bash
 python insert_selection/plot.py
 ```
+
+# Insert validation
+
+The [insert_validation](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_validation) directory 
+contains code for processing and analyzing amplicon sequencing data used for arrayed validation of the top 5nt insertions
+for each edit site.
+
+@katieyost please fill in this section
+
+# Orthogonalization
+
+The [orthogonalization](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization) directory 
+contains code for processing and analyzing amplicon sequencing data used for validating orthogonalized versions
+of the RNF2, HEK3, and EMX1 edit sites.
+
+@katieyost please fill in this section
 
 # pegArray balance
 
@@ -116,6 +149,39 @@ after processing the raw data or downloading the processed files from [Figshare]
 @zhengpuas47 please fill in this section.
 
 # Image processing
+
+The [image_processing](https://github.com/jweissmanlab/PETracer_Paper/tree/main/image_processing) directory 
+contains code for processing imaging data. Image processing was performed on a Linux HPC cluster with SLURM, [Deconwolf 0.4.5](https://elgw.github.io/deconwolf/), and [fishtank 0.0.1](https://fishtank-jsw.readthedocs.io/en/latest/index.html) installed. Raw imaging files are not publicly available due to file size, but code can be used to process other imaging data in the same format. Processed files for each experiment (e.g. 241213_F320-4-3_MF4++) can be generated with the following steps:
+
+1. Nuclei segmentation using Cellpose and Deconwolf
+```bash
+sbatch image_processing/241213_F320-4-3_MF4++/Scripts/cellpose.slurm
+```
+2. MERFISH transcript decoding using Merlin
+
+@zhengpuas47 please fill in the details
+
+```bash
+```
+
+3. Assignment of cytoplasmic transcripts to nuclei using Proseg
+```bash
+sbatch image_processing/241213_F320-4-3_MF4++/Scripts/proseg.slurm
+```
+4. Alignment of MERFISH and lineage imaging data using fishtank
+```bash
+sbatch image_processing/241213_F320-4-3_MF4++/Scripts/align_experiments.slurm
+```
+5. T7 amplicon detection and quantification using fishtank
+```bash
+sbatch image_processing/241213_F320-4-3_MF4++/Scripts/detect_spots.slurm
+```
+6. T7 amplicon decoding and cell assignment using fishtank
+```bash
+sbatch image_processing/241213_F320-4-3_MF4++/Scripts/decode_spots.slurm
+```
+
+This process was repeated for each imaging experiment, except for experiments without MERFISH data, which only required steps 1, 5, and 6.
 
 # Predifined lineage mark validation
 
