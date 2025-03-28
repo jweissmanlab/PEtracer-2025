@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import anndata as ad
 import fishtank as ft
 import geopandas as gpd
@@ -678,7 +676,7 @@ def clades_and_subclades_with_zoom(clone_tdata,figsize = (2.5, 3)):
     py.tl.clades(clone_tdata,clades = subclades["clade"].to_dict(),tree = "tree", key_added='subsubclade')
     plot_tree_with_zoom("M1-T1_subsubclade_tree_with_zoom",clone_tdata,key = "subsubclade",subset = subset_tdata.obs_names,
                         sample = "M1-S2",xlim = (4100, 4600),ylim = (1500, 2000), figsize = figsize)
-    
+
 
 def clade_extant_ribbon(plot_name,tdata,ylim = None,frac = False,figsize = (2,2)):
     """Plot cumulative number of extant cells by clade over time."""
