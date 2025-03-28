@@ -1,24 +1,17 @@
-""" Functions to generate plots for the kinetics experiments"""
-import sys
+"""Functions to generate plots for the kinetics experiments"""
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import petracer
 import seaborn as sns
-import matplotlib.pyplot as plt
-from pathlib import Path
-
-# Configure
-results_path = Path(__file__).parent / "results"
-data_path = Path(__file__).parent / "data"
-plots_path = Path(__file__).parent / "plots"
-base_path = Path(__file__).parent.parent
-ref_path = base_path / "reference"
-sys.path.append(str(base_path))
-plt.style.use(base_path / 'plot.mplstyle')
-
-# Load source
-from petracer.config import colors,sequential_cmap,site_names,discrete_cmap,site_ids
-from petracer.utils import save_plot
+from petracer.config import colors, discrete_cmap, sequential_cmap, site_ids, site_names
 from petracer.legends import add_cbar
+from petracer.utils import save_plot
+
+base_path, data_path, plots_path, results_path = petracer.config.get_paths("kinetics")
+petracer.config.set_theme()
+np.random.seed(42)
 
 # Define constants
 speed_palette = {"Other":"lightgray","WT":colors[0],"2-3 weeks":colors[1],"4-6 weeks":colors[2]}

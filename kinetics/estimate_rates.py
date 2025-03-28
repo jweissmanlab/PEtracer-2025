@@ -1,17 +1,18 @@
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
+import petracer
 from scipy.optimize import curve_fit
 
-# Configure
-results_path = Path(__file__).parent / "results"
-data_path = Path(__file__).parent / "data"
+base_path, data_path, plots_path, results_path = petracer.config.get_paths("kinetics")
 
 def exp_growth_saturation(x, a, b):
+    """Exponential growth saturation function"""
     return a * (1 - np.exp(-b * x))
 
 def estimate_rates(output,cell_lines = ["4T1","B16F10"]):
-    '''Estimate editing rates for each pegRNA'''
+    """Estimate editing rates for each pegRNA"""
     cell_line_rates = []
     for cell_line in cell_lines:
         # Load data
