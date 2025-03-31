@@ -3,7 +3,7 @@
 This repository contains the code to reproduce all analyses and figures from the manuscript 
 "High-resolution spatial mapping of cell state and lineage dynamics in vivo with PETracer".
 
-![](https://github.com/jweissmanlab/PETracer_Paper/blob/main/img.png)
+![](https://github.com/jweissmanlab/PETracer_Paper/blob/main/img.jpg)
 # Setup
 
 ### Python environment
@@ -15,11 +15,24 @@ ipython kernel install --user --name petracer
 ```
 The [environment.lock.yml](https://github.com/jweissmanlab/PETracer_Paper/tree/main/environment.lock.yml) file can be used to recreate the environment with the exact package versions used in the paper.
 
+### Image processing environment
+
+Image processing was performed on a linux HPC cluster with the following software installed:
+
+* SLURM v23.11.5
+* Python v3.11.10
+* [Cellpose v3.0.0](https://github.com/MouseLand/cellpose) 
+* [Deconwolf v0.4.5](https://elgw.github.io/deconwolf/)
+* [Proseg v1.1.3](https://github.com/dcjones/proseg)
+* [Fishtank v0.0.1](https://fishtank-jsw.readthedocs.io/en/latest/index.html)
+* [MERlin v0.1.7](https://github.com/zhengpuas47/MERlin)
+
+
 # Data availability
 
 * Processed data is available on [Figshare](https://figshare.com/s/8e9d573deca3d44235fe)
 * Single-cell RNA-seq data is available on [GEO](Add GEO link)
-* All other sequencing data is available on [SRA](Add SRAN link)
+* All other sequencing data is available on [SRA](Add SRA link)
 
 # Simulation
 
@@ -151,7 +164,7 @@ after processing the raw data or downloading the processed files from [Figshare]
 # Image processing
 
 The [image_processing](https://github.com/jweissmanlab/PETracer_Paper/tree/main/image_processing) directory 
-contains code for processing imaging data. Image processing was performed on a Linux HPC cluster with SLURM, [Deconwolf 0.4.5](https://elgw.github.io/deconwolf/), and [fishtank 0.0.1](https://fishtank-jsw.readthedocs.io/en/latest/index.html) installed. Raw imaging files are not publicly available due to file size, but code can be used to process other imaging data in the same format. Processed files for each experiment (e.g. 241213_F320-4-3_MF4++) can be generated with the following steps:
+contains code for processing imaging data. Raw imaging files are not publicly available due to file size, but code can be used to process other imaging data in the same format. Processed files for each experiment (e.g. 241213_F320-4-3_MF4++) can be generated with the following steps:
 
 1. Nuclei segmentation using Cellpose and Deconwolf
 ```bash
