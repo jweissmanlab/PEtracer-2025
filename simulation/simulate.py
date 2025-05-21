@@ -6,16 +6,16 @@ import cassiopeia as cas
 import numpy as np
 import pandas as pd
 import petracer
+import pycea as py
+import treedata as td
 from petracer.config import log_path, threads
+from petracer.barcode import get_barcode_clades
 from tqdm.auto import tqdm
 
 base_path, data_path, plots_path, results_path = petracer.config.get_paths("simulation")
 petracer.config.set_theme()
 
 np.random.seed(42)
-
-# Load source
-
 
 # Load config
 logfile = None if log_path is None else results_path / "log"
@@ -287,6 +287,37 @@ def get_indel_hnorm():
     indel_dist = pd.read_csv(data_path / "indel_distribution.tsv", index_col=0,sep="\t")
     return normalized_entropy(indel_dist["probability"])
 
+def example_tree_simulation():
+    """Simulate example tree for plotting"""
+    np.random.seed(6)
+    # Simulate a lineage tree
+    lineage_sim = lineage_simulator(1000)
+    tree = lineage_sim.simulate_tree()
+    tdata = td.TreeData(obst = {"tree":tree.get_tree_topology()},
+                        obs = pd.DataFrame(index = tree.leaves),allow_overlap = True)
+    py.pp.add_depth(tdata,tree = "tree",key_added="time")
+    py.tl.clades(tdata,depth = 5,depth_key="time")
+    # LM distributions
+    skewed_4 = generate_state_distribution(4,0.7)
+    state_dists = {"balenced_8":{str(i+1):.125 for i in range(8)},
+                   "skewed_4":{i+1: p for i, p in enumerate(skewed_4)},
+                   "single":{"1":1}}
+    for name,dist in state_dists.items():
+        # Simulate tracing data
+        mutation_rate = edit_frac_to_mutation_rate(tree,.7)
+        tracing_simulator(60,mutation_rate,.1,dist).overlay_data(tree)
+        reconstructed_tree = tree.copy()
+        solvers["nj"].solve(reconstructed_tree,logfile = None)
+        tdata.obst[name] = reconstructed_tree.get_tree_topology()
+        tdata.obsm[f"{name}_characters"] = reconstructed_tree.character_matrix.astype(int).values
+        # Calculate RF
+        rf, rf_max = cas.critique.compare.robinson_foulds(tree, reconstructed_tree)
+        tdata.uns[f"{name}_rf"] = rf / rf_max
+        # Calculate FMI
+        reconstructed_clades = get_barcode_clades(tdata,"clade",key = name)
+        tdata.uns[f"{name}_fmi"] = np.average(reconstructed_clades["fmi"],weights=reconstructed_clades["n"])
+    tdata.write_h5ad(data_path / "example_tree_simulation.h5ad")
+
 
 # Run simulations
 if __name__ == "__main__":
@@ -301,3 +332,5 @@ if __name__ == "__main__":
     min_characters_simulation()
     print("Simulating optimal edit rate vs experiment length")
     edit_rate_simulation()
+    print("Simulating example tree")
+    example_tree_simulation()

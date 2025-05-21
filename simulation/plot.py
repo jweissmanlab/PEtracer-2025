@@ -1,12 +1,15 @@
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
 import petracer
+import treedata as td
+import pycea as py
 import seaborn as sns
 from petracer.config import colors, discrete_cmap, sequential_cmap
-from petracer.utils import save_plot
+from petracer.utils import save_plot, get_clade_palette
 
 base_path, data_path, plots_path, results_path = petracer.config.get_paths("simulation")
 petracer.config.set_theme()
@@ -152,6 +155,38 @@ def rf_vs_triplets_scattterplot(plot_name,figsize = (2.2,2.2)):
     save_plot(fig,plot_name,plots_path,rasterize=True)
 
 
+def example_ground_truth_tree(plot_name,figsize = (.75, 2)):
+    """Plot the ground truth tree for the example simulation."""
+    tdata = td.read_h5ad(data_path / "example_tree_simulation.h5ad")
+    fig, ax = plt.subplots(figsize=figsize, dpi=300, layout = "constrained")
+    py.pl.branches(tdata,tree = "tree",depth_key="time",ax = ax,linewidth=.2)
+    clade_palette = get_clade_palette(tdata)
+    py.pl.annotation(tdata,keys = 'clade',ax = ax,palette=clade_palette,width = .2,label = "")
+    save_plot(fig,plot_name,plots_path,rasterize=True)
+
+
+def example_tree_reconstructions(figsize = (2, 2)):
+    """Plot reconstucted trees of example simulation."""
+    tdata = td.read_h5ad(data_path / "example_tree_simulation.h5ad")
+    clade_palette = get_clade_palette(tdata)
+    cmaps = {
+        "balenced_8":  petracer.config.edit_cmap,
+        "skewed_4": mcolors.ListedColormap(['white', 'lightgray'] +  petracer.config.colors[1:5]),
+        "single": mcolors.ListedColormap(['white', 'lightgray',petracer.config.colors[1]])
+    }
+    for name in ["balenced_8","skewed_4","single"]:
+        fig, ax = plt.subplots(figsize=figsize)
+        tdata.obs["clade_num"] = tdata.obs.clade.astype(int)
+        py.tl.ancestral_states(tdata,tree = name,keys = "clade_num")
+        py.tl.sort(tdata,tree = name,key = "clade_num")
+        py.pl.branches(tdata,depth_key="time",tree = name,ax = ax,linewidth = .2)
+        py.pl.annotation(tdata,keys = 'clade',ax = ax,label = "",width = .2,palette=clade_palette)
+        py.pl.annotation(tdata,keys = f"{name}_characters",ax = ax,label = "",
+                        cmap = cmaps[name],width = .04)
+        ax.text(.3, 1, f"RF = {tdata.uns[f'{name}_rf']:.2f}, FMI = {tdata.uns[f'{name}_fmi']:.2f}", fontsize=8, transform=ax.transAxes)
+        save_plot(fig,f"{name}_lm_example",plots_path,rasterize=True)
+
+
 if __name__ == "__main__":
     # Load data
     states_vs_frac = pd.read_csv(results_path / "states_vs_frac_simulation.csv")
@@ -168,4 +203,6 @@ if __name__ == "__main__":
     edit_rate_lineplot("log_edit_rate_lineplot",log = True,figsize = (3.1,2))
     edit_rate_lineplot("edit_rate_lineplot",log = False,figsize = (3,2))
     rf_vs_triplets_scattterplot("rf_vs_triplets_scatterplot",figsize = (2,2))
+    example_ground_truth_tree("ground_truth_example")
+    example_tree_reconstructions(figsize = (2,2))
 
