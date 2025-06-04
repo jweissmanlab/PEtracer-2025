@@ -168,7 +168,7 @@ after processing the raw data or downloading the processed files from [Figshare]
 
 # Integration barcode design
 
-@zhengpuas47 please fill in this section.
+Detailed integration barcode design 
 
 # Probe design
 
@@ -209,8 +209,19 @@ sbatch image_processing/241213_F320-4-3_MF4++/Scripts/cellpose.slurm
 > Run MERLin:
 >> Example command:
 >> ```bash
->> merlin -a xxx
+>> merlin -a 20241007-MF4_TestPreprocess.json \
+>> 		-o 20240812-MF4_16bit.csv \
+>> 		-c MF4dna_codebook.csv \
+>> 		-m merscope01_microscope.json \
+>> 		-p 20240812_positions.txt \
+>> 		-e /lab/weissman_imaging/puzheng/4T1Tumor \
+>> 		-s /lab/weissman_imaging/puzheng/MERFISH_analysis/4T1 \
+>> 		-k run_MF4_cellpose.json \
+>> 		-n 2 \
+>> 		--no_report True \
+>> 		20240812-F319-12-0807_MF4dna-mCh
 >> ```
+>> The example parameter files are provided in folder: *merlin_parameters*. Make sure to keep the subfolder structures and set the PARAMETER_HOME in the configuration step as the absolute path of this merlin_parameters folder.
 
 3. Assignment of cytoplasmic transcripts to nuclei using Proseg
 ```bash
