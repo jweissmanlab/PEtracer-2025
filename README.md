@@ -25,7 +25,7 @@ Image processing was performed on a linux HPC cluster with the following softwar
 * [Deconwolf v0.4.5](https://elgw.github.io/deconwolf/)
 * [Proseg v1.1.3](https://github.com/dcjones/proseg)
 * [Fishtank v0.0.1](https://fishtank-jsw.readthedocs.io/en/latest/index.html)
-* [MERlin v0.1.7](https://github.com/zhengpuas47/MERlin)
+* [MERlin v0.1.8](https://github.com/zhengpuas47/MERlin)
 
 
 # Data availability
@@ -172,9 +172,14 @@ sbatch image_processing/241213_F320-4-3_MF4++/Scripts/cellpose.slurm
 ```
 2. MERFISH transcript decoding using Merlin
 
-@zhengpuas47 please fill in the details
-
+> Download the newest version of MERLin here: [Link to MERLin release](https://github.com/zhengpuas47/MERlin/releases/tag/v0.1.8)
+>> install the merlin by:
+>> ```bash
+>> pip install -e MERLin
+>> ```
+>> 
 ```bash
+merlin -a xxx
 ```
 
 3. Assignment of cytoplasmic transcripts to nuclei using Proseg
