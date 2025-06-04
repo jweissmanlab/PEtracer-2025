@@ -188,12 +188,29 @@ sbatch image_processing/241213_F320-4-3_MF4++/Scripts/cellpose.slurm
 > Download the newest version of MERLin here: [Link to MERLin release](https://github.com/zhengpuas47/MERlin/releases/tag/v0.1.8)
 >> install the merlin by:
 >> ```bash
+>> conda create -n merlin_py310 python=3.10
+>> conda activate merlin_py310
+>> conda install h5py rtree pytables setuptools urllib3 python-dotenv pandas tifffile
+>> conda install scikit-image scikit-learn scipy matplotlib networkx seaborn
+>> conda install pytest pytest-cov numexpr cython requests boto3 xmltodict google-cloud-storage docutils pillow
+>> pip install opencv-python pyqt5 sphinx-rtd-theme snakemake pyclustering tables cellpose
 >> pip install -e MERLin
+>>```
+>> Test if the installation works by:
+>> ```bash
+>> merlin -h
 >> ```
->> 
-```bash
-merlin -a xxx
-```
+>> For the first time using MERLin, configure it by:
+>> ```bash
+>> merlin --configure .
+>> ```
+>> Then follow the instruction. \
+>
+> Run MERLin:
+>> Example command:
+>> ```bash
+>> merlin -a xxx
+>> ```
 
 3. Assignment of cytoplasmic transcripts to nuclei using Proseg
 ```bash
