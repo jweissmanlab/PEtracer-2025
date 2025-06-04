@@ -42,6 +42,7 @@ if __name__ == "__main__":
     #plot_cbar(mpl.colormaps["Reds"], [0,3,6], "Cldn4_expression", "Cldn4_cbar")
     #plot_cbar(mpl.colormaps["Reds"], [0,50,100], "Cldn4 expression", "expression_cbar")
     #plot_cbar(mpl.colormaps["RdBu_r"], [-1.5,0,1.5], "Mean expression (z-score)", "mean_expression_cbar")
-    plot_cbar(mpl.colormaps["RdBu_r"], [-2,0,1.5], "Fitness correlation (Pearson)", "fitness_corr_cbar",center = 0)
+    #plot_cbar(mpl.colormaps["RdBu_r"], [-2,0,1.5], "Fitness correlation (Pearson)", "fitness_corr_cbar",center = 0)
+    plot_cbar(mpl.colormaps["Purples"], [0,3,6], "Fitness", "purple_fitness_cbar")
 
 

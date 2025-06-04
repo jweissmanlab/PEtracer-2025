@@ -16,7 +16,7 @@ sys.path.append(str(base_path))
 from petracer.seq import barcode_from_alignment
 
 def main():
-    # Create the parser
+    """Extract barcodes from bam file"""
     parser = argparse.ArgumentParser(description="Call alleles from bam file")
 
     # Add arguments

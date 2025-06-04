@@ -56,7 +56,7 @@ def barcode_from_alignment(sequence, cigar, start, stop, ref_begin = 0):
     ref_pos = 0
     for op in re.findall(r'(\d+)([MIDNSHP=X])', cigar):
         length, operation = int(op[0]), op[1]
-        if operation in ["M","S"]:
+        if operation in ["M","S","H"]:
             if ref_pos + length > start:
                 sub_start = max(0, start - ref_pos)
                 sub_end = min(length, stop - ref_pos)

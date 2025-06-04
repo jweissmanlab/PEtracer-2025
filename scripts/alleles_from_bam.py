@@ -1,5 +1,4 @@
 import numpy as np
-import sys
 import pandas as pd
 import argparse
 import pysam
@@ -7,24 +6,17 @@ import multiprocessing as mp
 from tqdm.auto import tqdm
 from collections import defaultdict
 import ast
-from pathlib import Path
-
-# Configure
-__file__ = "/lab/solexa_weissman/PEtracing_shared/PETracer_Paper/kinetics/dev.ipynb"
-base_path = Path(__file__).parent.parent
-sys.path.append(str(base_path))
-
-# Load helper functions
 from petracer.seq import insertion_from_alignment, barcode_from_alignment
 
 def call_alleles(param):
+    """Call alleles for a given intID from bam file"""
     # Setup
     intID, args, lock = param
     sites = ast.literal_eval(args.site_positions)
     if len(sites) > 0:
         end = max(sites.values())
     else:
-        end = args.barcode_position
+        end = args.barcode_end
     # Get iterator
     bamfile = pysam.AlignmentFile(args.bam, "rb")
     if args.extract_barcode:
@@ -35,11 +27,11 @@ def call_alleles(param):
     # Process reads
     umi_counts = defaultdict(int)
     for read in read_iter:
-        if (read.mapping_quality < 30 or 
+        if (read.mapping_quality < 30 or
             read.reference_start > args.barcode_start or
-            read.reference_end < end or 
+            read.reference_end < end or
             'N' in read.cigarstring or
-            not read.has_tag('CB') or 
+            not read.has_tag('CB') or
             not read.has_tag('UB')):
             continue
         # Get integration
@@ -74,10 +66,12 @@ def call_alleles(param):
         {"UMI":"size","readCount":"sum"}).reset_index()
         # filter alleles
         allele_counts = allele_counts.query(f"readCount >= {args.min_reads}")
+        print(f"Found {len(allele_counts)} alleles for {intID}")
         with lock:
             allele_counts.to_csv(args.out, mode='a', header=False, index=False)
 
 def main():
+    """Main function to call alleles from bam file"""
     # Create the parser
     parser = argparse.ArgumentParser(description="Call alleles from bam file")
     # Add arguments
@@ -101,9 +95,9 @@ def main():
     if args.extract_barcode:
         call_alleles((intIDs[0],args,lock))
     # Process in parallel
-    else:    
+    else:
         with mp.Pool(processes=8) as pool:
-            _ = list(tqdm(pool.imap_unordered(call_alleles,[(intID,args,lock) for intID in intIDs]), 
+            _ = list(tqdm(pool.imap_unordered(call_alleles,[(intID,args,lock) for intID in intIDs]),
                                         total=len(intIDs),mininterval=60, desc="TS"))
 
 if __name__ == "__main__":

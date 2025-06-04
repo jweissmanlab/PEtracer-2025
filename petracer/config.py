@@ -156,6 +156,13 @@ module_palette = {
     "3":"#1874CD",
     "4":'#CD2626'}
 
+# Leiden palette
+leiden_palette = {
+    "1":colors[7],
+    "2":colors[6],
+    "3":colors[10],
+    "4":colors[8]
+}
 
 def get_clade_palette(tdata,key = "clade"):
     """Get a clade palette for a given tdata object."""

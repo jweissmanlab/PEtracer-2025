@@ -8,9 +8,11 @@ import petracer
 import pycea
 import scipy as sp
 import seaborn as sns
+import sklearn as skl
 import treedata as td
 from petracer.config import colors, discrete_cmap, edit_ids, edit_palette, sequential_cmap, site_ids, site_names
 from petracer.utils import save_plot
+from petracer.tree import calculate_edit_frac
 
 base_path, data_path, plots_path, results_path = petracer.config.get_paths("barcoded_tracing")
 petracer.config.set_theme()
@@ -346,6 +348,39 @@ def tree_with_barcodes(plot_name,clone,figsize = (8.2,1.8)):
     save_plot(fig, plot_name, plots_path,svg=False)
 
 
+def polar_tree_with_pe_edit_frac(plot_name,clone = "4",figsize = (3,3)):
+    """Plot polar tree with PE expression and edit fraction"""
+    tdata = td.read_h5ad(data_path / f"barcoded_tracing_clone_{clone}.h5td")
+    calculate_edit_frac(tdata)
+    tdata.obs["pe_expression"] = tdata[:,"PE2maxGFP"].X.toarray().flatten()
+    fig, ax = plt.subplots(figsize=figsize, subplot_kw={'projection': 'polar'},dpi = 1200,layout = "constrained")
+    pycea.pl.branches(tdata,depth_key="time",ax = ax,polar = True,linewidth = .1)
+    pycea.pl.annotation(tdata,"pe_expression",width = .2,cmap = "Reds",vmax = 10)
+    pycea.pl.annotation(tdata,"edit_frac",width = .2,cmap = "Blues",vmin = 0, vmax = 1)
+    pycea.pl.annotation(tdata,"fitness",width = .2,cmap = "Purples",vmin = 0, vmax = 6)
+    save_plot(fig,plot_name,plots_path,rasterize = True)
+
+
+def scatter_with_regression(plot_name, clone, x, xlabel, y, ylabel, figsize = (2,2)):
+    """Scatterplot with regression line"""
+    tdata = td.read_h5ad(data_path / f"barcoded_tracing_clone_{clone}.h5td")
+    calculate_edit_frac(tdata)
+    tdata.obs["pe_expression"] = tdata[:,"PE2maxGFP"].X.toarray().flatten()
+    data = tdata.obs.copy()
+    if x == "pe_expression":
+        data = data[data["pe_expression"] < 15]
+    fig, ax = plt.subplots(figsize=figsize, layout="constrained", dpi=300)
+    sns.scatterplot(data=data, y=y, x=x, alpha=.1, ax=ax, s=10)
+    sns.regplot(x=x, y=y, data=data, ax=ax, scatter=False, line_kws={"color":"black"})
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    slope, intercept, _, _, _ = sp.stats.linregress(data[x], data[y])
+    y_pred = data[x] * slope + intercept
+    r2 = skl.metrics.r2_score(data[y], y_pred)
+    ax.text(0.5, 0.95, f"$r^2$ = {r2:.2f}", transform=ax.transAxes, va='top', ha='left')
+    save_plot(fig, plot_name, plots_path, rasterize=True)
+
+
 ## Generate plots
 if __name__ == "__main__":
     #Clone stats
@@ -376,4 +411,7 @@ if __name__ == "__main__":
     polar_tree_with_clades(f"clone_{example}_polar",example,None,figsize = (4,4))
     polar_tree_with_clades(f"clone_{example}_combined_clades",example,"combined",figsize = (4,4))
     tree_with_characters(f"clone_{example}_with_characters",example,figsize = (2.5,2))
-
+    polar_tree_with_pe_edit_frac(f"clone_{example}_pe_edit_frac",example,figsize = (2,2))
+    scatter_with_regression("clone_4_pe_vs_edit_frac","4","pe_expression","PE2max expression","edit_frac","Fraction of sites edited")
+    scatter_with_regression("clone_4_pe_vs_fitness","4","pe_expression","PE2max expression","fitness","Fitness")
+    scatter_with_regression("clone_4_edit_frac_vs_fitness","4","edit_frac","Fraction of sites edited","fitness","Fitness")

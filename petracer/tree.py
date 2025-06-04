@@ -22,6 +22,13 @@ def get_edit_frac(characters):
     detected = characters[characters != -1]
     return np.sum(detected > 0)/len(detected)
 
+
+def calculate_edit_frac(tdata):
+    tdata.obs["n_detected"] = (tdata.obsm["characters"] != -1).sum(axis=1)
+    tdata.obs["n_edited"] = (tdata.obsm["characters"] > 0).sum(axis=1)
+    tdata.obs["edit_frac"] = tdata.obs["n_edited"] / tdata.obs["n_detected"]
+
+
 def mask_truncal_edits(characters):
     masked_characters = {}
     for column in characters.columns:

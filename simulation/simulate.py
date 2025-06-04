@@ -298,7 +298,7 @@ def example_tree_simulation():
     py.pp.add_depth(tdata,tree = "tree",key_added="time")
     py.tl.clades(tdata,depth = 5,depth_key="time")
     # LM distributions
-    skewed_4 = generate_state_distribution(4,0.7)
+    skewed_4 = generate_state_distribution(4,0.5)
     state_dists = {"balenced_8":{str(i+1):.125 for i in range(8)},
                    "skewed_4":{i+1: p for i, p in enumerate(skewed_4)},
                    "single":{"1":1}}
