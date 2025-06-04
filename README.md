@@ -66,7 +66,7 @@ after downloading the fastq files listed in [manifest.txt](https://github.com/jw
 
 ### Analysis
 
-**strategy_selection/insertvariants/plot.ipynb** - generate strategy selection plots.
+**plot.ipynb** - generate strategy selection plots.
 
 # 5nt insert selection
 
