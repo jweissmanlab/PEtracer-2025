@@ -208,3 +208,7 @@ cython_debug/
 /orthogonalization/data
 /insert_validation/fastq
 /insert_validation/data
+/strategy_selection/insertvariants/TYPE1/
+/strategy_selection/insertvariants/TYPE2/
+/strategy_selection/insertvariants/TYPE3/
+/strategy_selection/insertvariants/TYPE4/

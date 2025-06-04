@@ -164,6 +164,15 @@ leiden_palette = {
     "4":colors[8]
 }
 
+# Neighborhood palette
+neighborhood_palette = {
+    "1":'#8E0496',
+    "2":'#CD2626',
+    "3":"#1874CD",
+    "4":'#009E73',
+    "5": '#FFE600',
+    "6": '#E69F00'}
+
 def get_clade_palette(tdata,key = "clade"):
     """Get a clade palette for a given tdata object."""
     clades = sorted(tdata.obs[key].dropna().unique(), key=lambda x: int(x))

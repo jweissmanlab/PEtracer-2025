@@ -15,6 +15,7 @@ import scanpy as sc
 import scikit_posthocs as skp
 import scipy as sp
 import seaborn as sns
+import sklearn as skl
 import squidpy as sq
 import statsmodels.stats as sm
 import treedata as td
@@ -26,12 +27,15 @@ from petracer.config import (  # noqa: E402
     colors,
     edit_palette,
     get_clade_palette,
+    leiden_palette,
     module_palette,
+    neighborhood_palette,
     phase_palette,
     subtype_abbr,
     subtype_palette,
 )
 from petracer.plotting import distance_comparison_scatter
+from petracer.tree import calculate_edit_frac
 from petracer.utils import save_plot
 
 base_path, data_path, plots_path, results_path = petracer.config.get_paths("tumor_tracing")
@@ -166,27 +170,33 @@ def calculate_fitness_correlation(clones, use_clones):
     fitness_corr.to_csv(results_path / "fitness_corr.csv",index=False)
 
 
-def calculate_heritability(clones, use_clones):
+def calculate_autocorr(clones, use_clones, corr_type = "heritability"):
     """Calculate phylogenetic autocorrelation for gene expression and hotspot modules."""
-    heritability = []
+    autocorr = []
     for clone in use_clones:
         clone_tdata = clones[clone].copy()
-        py.tl.tree_neighbors(clone_tdata, max_dist = 20,depth_key="time",tree = "tree")
-        clone_heritability = py.tl.autocorr(clone_tdata,connect_key="tree_connectivities",copy = True,layer = "counts").rename(columns = {"pval_norm":"p_value"})
-        clone_heritability["q_value"] = sm.multitest.multipletests(clone_heritability["p_value"], method = "fdr_bh")[1]
-        clone_heritability["feature_type"] = "expression"
-        clone_heritability["clone"] = clone
-        heritability.append(clone_heritability)
+        if corr_type == "heritability":
+            py.tl.tree_neighbors(clone_tdata, max_dist = 20,depth_key="time",tree = "tree")
+            connect_key = "tree_connectivities"
+        elif corr_type == "spatial_variation":
+            sq.gr.spatial_neighbors(clone_tdata, coord_type="generic", radius = 100)
+            connect_key = "spatial_connectivities"
+        clone_tdata=clone_tdata[clone_tdata.obsp[connect_key].sum(axis = 0).flatten() > 0].copy()
+        clone_autocorr = py.tl.autocorr(clone_tdata,connect_key=connect_key,copy = True,layer = "counts").rename(columns = {"pval_norm":"p_value"})
+        clone_autocorr["q_value"] = sm.multitest.multipletests(clone_autocorr["p_value"], method = "fdr_bh")[1]
+        clone_autocorr["feature_type"] = "expression"
+        clone_autocorr["clone"] = clone
+        autocorr.append(clone_autocorr)
         if "module_scores" in clone_tdata.obsm.keys():
             tdata_subset = clone_tdata[clone_tdata.obs["hotspot_module"].notnull()].copy()
-            clone_heritability = py.tl.autocorr(tdata_subset,connect_key="tree_connectivities",copy = True,keys = "module_scores").rename(columns = {"pval_norm":"p_value"})
-            clone_heritability["q_value"] = sm.multitest.multipletests(clone_heritability["p_value"], method = "fdr_bh")[1]
-            clone_heritability["feature_type"] = "hotspot_module"
-            clone_heritability["clone"] = clone
-            heritability.append(clone_heritability)
-    heritability = pd.concat(heritability)
-    heritability["feature"] = heritability.index
-    heritability.to_csv(results_path / "heritability.csv",index=False)
+            clone_autocorr = py.tl.autocorr(tdata_subset,connect_key=connect_key,copy = True,keys = "module_scores").rename(columns = {"pval_norm":"p_value"})
+            clone_autocorr["q_value"] = sm.multitest.multipletests(clone_autocorr["p_value"], method = "fdr_bh")[1]
+            clone_autocorr["feature_type"] = "hotspot_module"
+            clone_autocorr["clone"] = clone
+            autocorr.append(clone_autocorr)
+    autocorr = pd.concat(autocorr)
+    autocorr["feature"] = autocorr.index
+    autocorr.to_csv(results_path / f"{corr_type}.csv",index=False)
 
 
 # Plotting functions
@@ -214,6 +224,8 @@ def plot_umap(plot_name, tdata, color, figsize = (2,2)):
     fig, ax = plt.subplots(figsize = figsize, layout = "constrained")
     if color == "cell_subtype":
         palette = subtype_palette
+    if color == "leiden_cluster":
+        palette = leiden_palette
     else:
         palette = module_palette
     sc.pl.umap(tdata, color = color, palette = palette, ax = ax,
@@ -396,7 +408,7 @@ def subtype_marker_dotplot(plot_name,tdata,gene_subset = None,gene_order = None,
     # Get gene order based on subtype expression
     if gene_order is None:
         mean_counts = sc.get.aggregate(tdata, by=["subtype_abbr"], func=["mean"], layer = 'counts')
-        mean_counts = pd.DataFrame(mean_counts.layers['mean'], index = mean_counts.obs['subtype_abbr'], columns=mean_counts.var.index)
+        mean_counts = pd.DataFrame(mean_counts.layers['mean'], index = mean_counts.obs['lsubtype_abbr'], columns=mean_counts.var.index)
         gene_sort = pd.DataFrame(mean_counts.idxmax(axis=0), columns=['subtype_abbr'])
         gene_sort = pd.merge(gene_sort, pd.DataFrame(mean_counts.max(axis=0), columns=["max_exp"]),left_index=True, right_index= True)
         if gene_subset is not None:
@@ -504,6 +516,31 @@ def clone_detection_violin(plot_name, tdata, figsize = (2.7,1.4)):
     plt.xlabel("")
     plt.ylabel("Detection rate (%)")
     plt.yticks([0,round(detection_rate["detection_pct"].mean()),100])
+    save_plot(fig,plot_name,plots_path)
+
+
+def clone_edit_frac_violin(plot_name, clones, mice = ("M1","M2"), figsize = (2.7,1.4)):
+    """Plot violin plot of edit fraction for each clone."""
+    # Get edit fraction
+    edit_frac = []
+    for clone in clones.values():
+        if clone.obs.mouse.iloc[0] in mice:
+            calculate_edit_frac(clone)
+            edit_frac.append(clone.obs)
+    edit_frac = pd.concat(edit_frac).query("edit_frac.notnull() & tree.notnull()").copy()
+    edit_frac["edit_pct"] = edit_frac["edit_frac"] * 100
+    edit_frac["name"] = edit_frac["mouse"].astype(str) + " T" + edit_frac["clone"].astype(str)
+    edit_frac = edit_frac.sort_values(["mouse","clone"])
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    sns.violinplot(data = edit_frac,y = "edit_pct",x = "name",color = "lightgrey",width = .8,density_norm='width',
+                ax = ax,linewidth=.5,linecolor="black",cut = 0,saturation=1,inner="quart",bw_adjust=2)
+    ax.axhline(50, color='black', linestyle='--', linewidth=1)
+    plt.ylim(0,100)
+    plt.xticks(rotation=90)
+    plt.xlabel("")
+    plt.ylabel("Sites with LM (%)")
+    plt.yticks([0,round(edit_frac["edit_pct"].mean()),100])
     save_plot(fig,plot_name,plots_path)
 
 
@@ -850,14 +887,14 @@ def scatter_with_density(plot_name,tdata,x,y,x_label,y_label,mm = True,
     save_plot(fig,plot_name,plots_path,rasterize = True)
 
 
-def module_phase_barplot(plot_name,tdata,figsize = (1.8,1.4)):
+def module_phase_barplot(plot_name,tdata,module_key = "hotspot_module",figsize = (1.8,1.4)):
     """Stacked barplot of cell cycle phase distribution in each module."""
     fig,ax = plt.subplots(figsize = figsize, dpi = 600,sharex=True, layout = "constrained")
-    phase_counts = tdata.obs.groupby(['hotspot_module','phase'], observed = True).size().unstack().fillna(0)
+    phase_counts = tdata.obs.groupby([module_key,'phase'], observed = True).size().unstack().fillna(0)
     phase_counts = phase_counts.div(phase_counts.sum(axis = 1),axis = 0)*100
     phase_counts = phase_counts.loc[:,["G2/M","S","G0/G1"]]
     phase_counts.plot(kind="bar", stacked=True, ax=ax, color=[phase_palette[phase] for phase in phase_counts.columns], width=0.8)
-    plt.xlabel("Hotspot module")
+    plt.xlabel(module_key)
     plt.ylabel("Phase (%)")
     plt.xticks(rotation=0)
     plt.xticks(np.arange(4),["1","2","3","4"])
@@ -885,23 +922,23 @@ def library_expr_corr_heatmap(plot_name,libraries,figsize = (2.5,3)):
     subtype_labels = [subtype_abbr[i] for i in common_subtypes]
     g = sns.clustermap(corr,cmap = "RdBu_r",center = 0, figsize = figsize,row_cluster=False,col_cluster=False,vmax = 1,
         row_colors = subtype_colors, col_colors = subtype_colors,xticklabels = subtype_labels, yticklabels = subtype_labels)
-    save_plot(g,plot_name,plots_path)
+    save_plot(g,plot_name,plots_path) 
 
 
-def plot_module_summary(plot_name,clone_tdata,figsize = (1.8,5.5)):
+def plot_module_summary(plot_name,clone_tdata,module_key = "hotspot_module",palette = None,figsize = (1.8,5.5)):
     """Plot expression, clade fraction, heritability and fitness of modules."""
     heritability = pd.read_csv(results_path / "heritability.csv")
     fig,axes = plt.subplots(4,1,figsize = figsize, dpi = 600,sharex=False, layout = "constrained",gridspec_kw={'height_ratios': [3, 1.5, 1.5, 1.5]})
     # Module expression
-    expr = sc.get.aggregate(clone_tdata[clone_tdata.obs.cell_subtype == "Malignant"], by=["hotspot_module"], func=["mean"], layer = 'normalized')
-    expr = pd.DataFrame(sp.stats.zscore(expr.layers['mean'],axis = 0), index =expr.obs['hotspot_module'], columns=expr.var.index)
+    expr = sc.get.aggregate(clone_tdata[clone_tdata.obs.cell_subtype == "Malignant"], by=[module_key], func=["mean"], layer = 'normalized')
+    expr = pd.DataFrame(sp.stats.zscore(expr.layers['mean'],axis = 0), index =expr.obs[module_key], columns=expr.var.index)
     expr = expr.loc[:,['Nes','Kif2c','Cdca2','Foxm1','Snai1','Sox9','Slc2a1','Vegfa','Wnt7b','Inava','Cdh1','Cd274','Cldn4','Fgfbp1']]
     sns.heatmap(expr.T,cmap = "RdBu_r",vmin = -2,vmax = 2,cbar = False,ax = axes[0],xticklabels = ["1","2","3","4"])
     axes[0].set_yticks(np.arange(len(expr.columns)) + .5)
     axes[0].set_yticklabels(expr.columns)
     axes[0].set_xlabel("")
     # Clade fraction
-    clade_counts = clone_tdata.obs.groupby(["hotspot_module","clade"],observed = False).size().unstack().fillna(0)
+    clade_counts = clone_tdata.obs.groupby([module_key,"clade"],observed = False).size().unstack().fillna(0)
     clade_counts = clade_counts.div(clade_counts.sum(axis=1), axis=0)*100
     clade_counts.plot(kind='bar', stacked=True,width = .9, color = list(petracer.config.discrete_cmap[18]),ax = axes[1])
     axes[1].legend().remove()
@@ -910,17 +947,19 @@ def plot_module_summary(plot_name,clone_tdata,figsize = (1.8,5.5)):
     axes[1].set_ylabel("Clades (%)")
     axes[1].tick_params(axis='x', rotation=0)
     # Heritability
-    sns.barplot(data = heritability.query("feature_type == 'hotspot_module'"),x = "feature",y = "autocorr",
-                hue = "feature",palette = module_palette,saturation = 1,order = [1,2,3,4],ax = axes[2],legend = False)
-    axes[2].set_xlabel("")
-    axes[2].set_ylabel("Heritability\n(autocorrelation)")
+    if module_key == "hotspot_module":
+        sns.barplot(data = heritability.query("feature_type == @module_key"),x = "feature",y = "autocorr",
+                    hue = "feature",palette = palette,saturation = 1,order = [1,2,3,4],ax = axes[2],legend = False)
+        axes[2].set_xlabel("")
+        axes[2].set_ylabel("Heritability\n(autocorrelation)")
     # Fitness violin
-    sns.violinplot(data = clone_tdata.obs,x = "hotspot_module",y = "fitness",hue = "hotspot_module",ax = axes[3],
-                palette = module_palette,legend = False,saturation=1,linewidth=.5,order= [1,2,3,4])
+    sns.violinplot(data = clone_tdata.obs,x = module_key,y = "fitness",hue = module_key,ax = axes[3],
+                palette = palette,legend = False,saturation=1,linewidth=.5,order= [1,2,3,4])
     # Save p-values
-    pvals = skp.posthoc_mannwhitney(clone_tdata.obs.query("fitness.notnull()"), val_col="fitness", group_col="hotspot_module",p_adjust='fdr_bh')
-    pvals = pvals.stack().rename_axis(['module1', 'module2']).reset_index(name='pval')
-    pvals.to_csv(results_path / "M3_module_fitness_pvals.csv",index = False)
+    if module_key == "hotspot_module":
+        pvals = skp.posthoc_mannwhitney(clone_tdata.obs.query("fitness.notnull()"), val_col="fitness", group_col=module_key,p_adjust='fdr_bh')
+        pvals = pvals.stack().rename_axis(['module1', 'module2']).reset_index(name='pval')
+        pvals.to_csv(results_path / "M3_module_fitness_pvals.csv",index = False)
     save_plot(fig,plot_name,plots_path)
 
 
@@ -939,15 +978,15 @@ def module_subtype_heatmap(plot_name,clone_tdata,figsize = (2.5, 2)):
     save_plot(g,plot_name,plots_path)
 
 
-def hotspot_corr_heatmap(plot_name,figsize = (3.5,3.5)):
+def hotspot_corr_heatmap(plot_name,prefix = "M3_hotspot",palette = module_palette,figsize = (3.5,3.5)):
     """Plot hotspot correlation heatmap."""
     # Load data
-    hotspot_corr = pd.read_csv(results_path / "M3_hotspot_corr.csv",index_col=0)
-    hotsot_modules = pd.read_csv(results_path / "M3_hotspot_modules.csv",index_col=0)
-    with open(results_path / "hotspot_linkage.npy", "rb") as f:
+    hotspot_corr = pd.read_csv(results_path / f"{prefix}_corr.csv",index_col=0)
+    hotsot_modules = pd.read_csv(results_path / f"{prefix}_modules.csv",index_col=0)
+    with open(results_path / f"{prefix}_linkage.npy", "rb") as f:
         linkage = np.load(f)
     # Plot
-    gene_color = hotsot_modules["Module"].astype(str).map(module_palette)
+    gene_color = hotsot_modules["Module"].astype(str).map(palette)
     g = sns.clustermap(hotspot_corr, cmap = "RdBu_r",center = 0,figsize = figsize,vmax = 30,vmin = -30,dendrogram_ratio=.05,
                 col_linkage=linkage,row_linkage=linkage,cbar_pos=None,col_colors = gene_color,row_colors=gene_color)
     y_ticks = hotspot_corr.index[g.dendrogram_row.reordered_ind]
@@ -1020,7 +1059,7 @@ def fitness_corr_scatter(plot_name,clone = 'M3-T1',figsize = (2,2)):
     sns.scatterplot(data = clone_corr.query("feature_type.isin(['expression','subtype_density'])"),
                     x = "dist_cor",y = "cor",hue = "feature_type",legend = False, size = 10)
     plt.plot([.3,-.3],[-.3,.3],linestyle="--",color="black",linewidth = 1)
-    for _, row in clone_corr.query("feature_type != 'distance'").iterrows():
+    for _, row in clone_corr.query("~feature_type.isin(['distance','module_score'])").iterrows():
         if abs(row["cor"]) > .1:
             label = row["feature"]
             label = subtype_abbr.get(label,label)
@@ -1086,6 +1125,80 @@ def heritability_vs_corr_scatter(plot_name,clones,clone = "M3-T1",figsize = (2, 
     save_plot(fig,plot_name,plots_path)
 
 
+def heritability_vs_spatial_variation(plot_name,clone = "M3-T1",figsize = (2,2)):
+    """Plot heritability vs spatial variation."""
+    heritability = pd.read_csv(results_path / "heritability.csv").query("clone == @clone & feature_type == 'expression'").copy()
+    spatial_variation = pd.read_csv(results_path / "spatial_variation.csv").query("clone == @clone & feature_type == 'expression'").copy()
+    merged = heritability.merge(spatial_variation,how = "left",on = "feature",suffixes=("_phylogenetic", "_spatial"))
+    # Plot
+    fig, ax = plt.subplots(figsize=(2,2), dpi=600, layout="constrained")
+    sns.scatterplot(data=merged,x="autocorr_phylogenetic",y="autocorr_spatial",ax = ax,s = 10)
+    ax.plot([0, .47], [0, .47], color='black', linestyle='--', linewidth=1)
+    for _, row in merged.iterrows():
+        if (abs(row["autocorr_phylogenetic"] - row["autocorr_spatial"]) > 0.11):
+            ax.text(row["autocorr_phylogenetic"], row["autocorr_spatial"], row["feature"], fontsize=8)
+    plt.xlabel("Heritability (Moran's I)")
+    plt.ylabel("Spatial variation (Moran's I)")
+    save_plot(fig, plot_name, plots_path)
+
+
+def scatter_with_regression(plot_name, tdata, x, xlabel, y, ylabel, figsize = (2,2)):
+    """Scatter plot with regression line and R^2 value."""
+    data = tdata.obs.query(f"{x}.notnull() and {y}.notnull()").copy()
+    fig, ax = plt.subplots(figsize=figsize, layout="constrained", dpi=300)
+    sns.scatterplot(data=data, y=y, x=x, alpha=.1, ax=ax, s=10)
+    sns.regplot(x=x, y=y, data=data, ax=ax, scatter=False, line_kws={"color":"black"})
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    slope, intercept, _, _, _ = sp.stats.linregress(data[x], data[y])
+    y_pred = data[x] * slope + intercept
+    r2 = skl.metrics.r2_score(data[y], y_pred)
+    ax.text(0.5, 0.95, f"$r^2$ = {r2:.2f}", transform=ax.transAxes, va='top', ha='left')
+    save_plot(fig, plot_name, plots_path, rasterize=True)
+
+
+def module_edit_frac_boxplot(plot_name,tdata,figsize = (2,2)):
+    """Plot boxplot of edit fraction by module."""
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    sns.boxplot(data=tdata.obs,x="hotspot_module",y="edit_frac",hue = "hotspot_module",
+                 saturation = 1,palette = module_palette,legend = False)
+    plt.xlabel("Hotspot module")
+    plt.ylabel("Fraction of sites edited")
+    save_plot(fig,plot_name,plots_path)
+
+
+def clade_edit_frac_boxplot(plot_name,tdata,figsize = (2,2)):
+    """Plot boxplot of edit fraction by clade."""
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    sns.boxplot(data=tdata.obs,x="clade",y="edit_frac",hue = "clade",
+                 saturation = 1,palette = get_clade_palette(tdata),legend = False)
+    plt.xlabel("Clade")
+    plt.ylabel("Fraction of sites edited")
+    plt.xticks(rotation=90);
+    save_plot(fig,plot_name,plots_path)
+
+
+def neighborhood_enrichment_heatmap(plot_name, adata_merge, figsize=(4, 4)):
+    """Subtype density by cell neighborhood."""
+    df = sc.get.aggregate(adata_merge, by=["cell_neighborhood"], func=["mean"], obsm='subtype_density')
+    df = pd.DataFrame(df.layers['mean'], index=df.obs['cell_neighborhood'], columns=df.var.index)
+    subtype_order = ['B cell', 'ALOX15 macrophage',
+                     'Neutrophil', 'Endothelial', 'AT1/AT2', 'Club cell',
+                     'Alveolar fibroblast 1', 'Alveolar fibroblast 2',
+                     'Malignant', 'pDC', 'CD11c macrophage',
+                     'cDC', 'NK', 'Exhausted CD8 T cell',
+                     'CD4 T cell', 'Treg',
+                     'Cancer fibroblast', 'ARG1 macrophage']
+    df = df.loc[:, subtype_order].transpose()
+    g = sns.clustermap(
+        df,cmap="RdBu_r",z_score=0,figsize=figsize,row_cluster=False,col_cluster=False,
+        col_colors=[neighborhood_palette[i] for i in df.columns],center=0,
+        row_colors=[subtype_palette[i] for i in df.index],yticklabels=df.index.map(subtype_abbr)
+    )
+    g.ax_heatmap.set(ylabel=None)
+    save_plot(g, plot_name, plots_path)
+
+
 if __name__ == "__main__":
     # Load data
     print(f"Loading data from {data_path}")
@@ -1097,7 +1210,8 @@ if __name__ == "__main__":
     calculate_imaging_stats(libraries)
     calculate_clone_stats(clones)
     calculate_fitness_correlation(clones, use_clones)
-    calculate_heritability(clones, use_clones)
+    calculate_autocorr(clones, use_clones, "heritability")
+    calculate_autocorr(clones, use_clones, "spatial_variation")
     # Plot decoding thumbnails
     print("Plotting decoding thumbnails")
     decoding_thumbnail("M1-S1_spot_thumbnail", "M1-S1",40,"H0R1",[748, 637, 405],(1550, 1120, 2000, 1570))
@@ -1124,6 +1238,16 @@ if __name__ == "__main__":
         plot_spatial(f"{clone}_subtype_spatial",clones[clone],"cell_subtype",basis = "spatial_grid",
             spot_size = 20, palette = subtype_palette, figsize = (5,2))
     plot_spatial_zoom("M2-T1_spatial_zoom",libraries["M1M2"],sample = "M2")
+    # Plot neighborhoods
+    hotspot_corr_heatmap("cell_neighborhood_correlation_heatmap",prefix = "neighborhood_hotspot",
+                         palette=neighborhood_palette,figsize = (4,4))
+    plot_spatial(f"M1_neighborhoods",libraries["M1M2"][libraries["M1M2"].obs["mouse"] == "M1"],"cell_neighborhood",
+                   regions = tumor_boundaries.query("mouse == 'M1_grid'"),basis = "spatial_grid",
+                   palette = neighborhood_palette, spot_size = 20, figsize = (4,4))
+    plot_spatial(f"M2_neighborhoods",libraries["M1M2"][libraries["M1M2"].obs["mouse"] == "M2"],"cell_neighborhood",
+                   regions = tumor_boundaries.query("mouse == 'M2'"),basis = "spatial_grid",
+                     palette = neighborhood_palette, spot_size = 20, figsize = (3,3))
+    neighborhood_enrichment_heatmap('M1M2_neighborhood_enrichment', libraries["M1M2"],figsize= (3, 4))
     # Plot expression by subtype
     print("Plotting expression by subtype")
     subtype_marker_dotplot("M1M1_expression_dotplot",libraries["M1M2"],
@@ -1138,7 +1262,7 @@ if __name__ == "__main__":
     # Plot replicate and scRNA-seq comparisons
     print("Plotting replicate and scRNA-seq comparisons")
     replicate_corr_scatter("M1_replicate_corr_scatter",libraries["M1M2"])
-    subtype_expr_corr_heatmap("M1M2_scRNAseq_corr_heatmap",libraries["M1M2"],figsize = (3.5, 3.5))
+    subtype_expr_corr_heatmap("M1M2_scRNAseq_corr_heatmap",libraries["M1M2"],figsize = (3.3, 3.5))
     bulk_corr_scatter("M1M2_bulk_corr_scatter",libraries["M1M2"])
     library_expr_corr_heatmap("M1M2_M3_corr_heatmap",libraries,figsize = (2.5,3))
     # Plot statistics for each clone
@@ -1147,6 +1271,7 @@ if __name__ == "__main__":
     edit_frac_stacked_barplot("M1-T1_edit_frac_barplot",clones["M1-T1"])
     detection_rate_hist("M1-T1_detection_hist", clones["M1-T1"], figsize = (1.7,1.5))
     clone_detection_violin("M1M2_clone_detection_violin",libraries["M1M2"],figsize = (2.4,1.6))
+    clone_edit_frac_violin("M1M2_clone_edit_frac_violin",clones,figsize = (2.47,1.6))
     for stat in ["edit_sites","site_edit_frac","n_cells","pct_cells"]:
         figsize = (2.4,1.6) if stat in ["edit_sites","site_edit_frac"] else (1.4,1.6)
         plot_clones = None if stat in ["edit_sites","site_edit_frac"] else use_clones
@@ -1171,10 +1296,11 @@ if __name__ == "__main__":
     plot_tree("M3-T1_tree_with_fitness",clones["M3-T1"],keys = ["fitness","hotspot_module"],polar = True,
         cmaps = ["magma",None],palettes=[None,module_palette],figsize = (2.3,2.3))
     subtype_fitness_corr_scatter("M1-T1_subtype_fitness_corr_scatter",clone = "M1-T1",figsize = (2,2))
-    fitness_corr_scatter("M3-T1_fitness_corr_scatter",clone = "M3-T1",figsize = (2.6,2))
+    fitness_corr_scatter("M3-T1_fitness_corr_scatter",clone = "M3-T1",figsize = (2.2,1.8))
     fgf1_cldn4_fitness_violin("M3-T1_Fgf1_Cldn4_fitness_violin",clones["M3-T1"],figsize = (1.3, 1.8))
     fitness_corr_heatmap("fitness_corr_heatmap",figsize = (1.2, 3))
-    heritability_vs_corr_scatter("M3-T1_heritability_vs_corr_scatter",clones,clone = "M3-T1",figsize = (2, 2))
+    heritability_vs_corr_scatter("M3-T1_heritability_vs_corr_scatter",clones,clone = "M3-T1",figsize = (1.8, 2))
+    heritability_vs_spatial_variation("M3-T1_heritability_vs_spatial_variation",clone = "M3-T1",figsize = (2,2))
     # M1-T1 spatial plots
     print("Plotting M1-T1 spatial distributions")
     for key, cmap, limits in [("local_character_diversity","viridis",(.4,.9)),
@@ -1188,6 +1314,9 @@ if __name__ == "__main__":
     for key, vmax in zip(["Cldn4","Fgfbp1"],[50,20],strict = True):
         plot_spatial(f"M1-T1_{key}_spatial", section_tdata, key,vmax = vmax,layer = "counts",
                     cmap = "Reds", mask_obs = "malignant", figsize=(1.7, 1.7))
+    plot_spatial(f"M1_S2_T1_neighborhoods",section_tdata,"cell_neighborhood",
+        regions = tumor_boundaries.query("sample == 'M1-S2'"),basis = "spatial_overlay",
+        palette = neighborhood_palette, spot_size = 20, figsize = (2,2))
     plot_edits_spatial("M1-T1",section_tdata,edits = {"intID2147-HEK3":"3","intID673-EMX1":"2","intID606-EMX1":"7"})
     plot_expansion("M1-T1_expansion",clones["M1-T1"],tumor_boundaries,node = "node32961")
     # M1-T1 section 2
@@ -1221,7 +1350,7 @@ if __name__ == "__main__":
     print("Plotting hotspot module analysis")
     plot_spatial("M3_modules_spatial",clones["M3-T1"],"hotspot_module",basis = "spatial_grid", spot_size = 20,
         palette = module_palette, regions = module_boundaries, linestyle = "-", figsize = (5,2))
-    plot_module_summary("M3-T1_module_summary",clones["M3-T1"])
+    plot_module_summary("M3-T1_module_summary",clones["M3-T1"],palette= module_palette)
     module_subtype_heatmap("M3-T1_module_subtype_density_heatmap",clones["M3-T1"],figsize = (2.5, 2))
     module_phase_barplot("M3-T1_phase_barplot",clones["M3-T1"],figsize = (1.8,1.4))
     hotspot_corr_heatmap("M3-T1_hotspot_corr",figsize = (3.5,3.5))
@@ -1245,6 +1374,22 @@ if __name__ == "__main__":
     plot_spatial("M3-S4_endothelial_spatial",section_tdata,"cell_subtype",palette=subtype_palette,spot_size = 20,
             groups = ["Tumor endothelial","ARG1 macrophage","CAP1 endothelial","CAP2 endothelial"],
             regions = module_boundaries.query("hotspot_module == '2'"),linestyle = "-",figsize = (1.7,1.7))
+    # Reviwer figures
+    print("Plotting reviewer figures")
+    plot_umap("M3_leiden_umap", libraries["M3"], "leiden_cluster")
+    plot_spatial("M3_leiden_spatial",clones["M3-T1"],"leiden_cluster",basis = "spatial_grid", spot_size = 20,
+        palette = leiden_palette, linestyle = "-", figsize = (5,2))
+    plot_tree("M3-T1_tree_with_leiden",clones["M3-T1"],keys = ["fitness","leiden_cluster"],polar = True,
+        cmaps = ["magma",None],palettes=[None,leiden_palette],figsize = (2.3,2.3))
+    plot_tree("M3-T1_edit_frac_fitness",clones["M3-T1"],keys = ["edit_frac","fitness"],polar = True,
+        cmaps = ["Blues","Purples"],vmins=[0,0],vmaxs=[1,6],figsize = (2,2))
+    plot_module_summary("M3-T1_leiden_cluster_summary",clones["M3-T1"],module_key = "leiden_cluster",palette= leiden_palette)
+    module_phase_barplot("M3-T1_leiden_phase_barplot",clones["M3-T1"],module_key = "leiden_cluster",figsize = (1.8,1.4))
+    scatter_with_regression("M3-T1_edit_frac_vs_fitness",clones["M3-T1"],"edit_frac","Fraction of sites edited","fitness","Fitness")
+    plot_spatial("M3-T1_edit_frac_spatial",clones["M3-T1"],"edit_frac",cmap = "Blues",colorbar_loc = "right",
+                    vmin = 0, vmax = 1,figsize = (5,2))
+    module_edit_frac_boxplot("M3-T1_module_edit_frac_boxplot",clones["M3-T1"],figsize = (2,2))
+    clade_edit_frac_boxplot("M3-T1_clade_edit_frac_boxplot",clones["M3-T1"],figsize = (3,2))
 
 
 

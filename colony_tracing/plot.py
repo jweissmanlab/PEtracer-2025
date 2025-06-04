@@ -1,14 +1,14 @@
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import geopandas as gpd
-import treedata as td
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import petracer
 import pycea as py
-
-from petracer.config import colors,discrete_cmap,edit_palette
+import seaborn as sns
+import treedata as td
+from petracer.config import colors, discrete_cmap, edit_palette
+from petracer.plotting import plot_polygons
+from petracer.tree import calculate_edit_frac
 from petracer.utils import save_plot
 
 base_path, data_path, plots_path, results_path = petracer.config.get_paths("colony_tracing")
@@ -35,8 +35,8 @@ clone3_clades = {
 # Data loading functions
 def load_colonies_tdata(data_path):
     """Load the colony tracing data from the specified path."""
-    tdata = td.read_h5ad(data_path / "colonies.h5ad")
-    polygons = gpd.read_file(data_path / "colonies_polygons.json")
+    tdata = td.read_h5ad(data_path / "colony_tracing.h5ad")
+    polygons = gpd.read_file(data_path / "colony_polygons.json")
     polygons = polygons.set_crs(None, allow_override=True)
     polygons.set_index("cellBC", inplace=True)
     tdata.obs = polygons.merge(tdata.obs, left_index=True, right_index=True)
@@ -174,7 +174,7 @@ def clone_stats_barplot(plot_name,y,figsize = (6,1)):
 
 
 def spatial_distance_lineplot(plot_name,clone_tdata,figsize = (2,2)):
-    """lineplot with phylogenetic vs spatial distances grouped by detection rate"""
+    """Lineplot with phylogenetic vs spatial distances grouped by detection rate"""
     # Get distances
     py.tl.distance(clone_tdata,key = "spatial",metric = "euclidean",sample_n = 200000,update=False)
     py.tl.tree_distance(clone_tdata,depth_key="time",connect_key="spatial")
@@ -246,6 +246,31 @@ def clone_detection_violin(plot_name, tdata, clones = None, figsize = (1,2)):
     save_plot(fig, plot_name, plots_path)
 
 
+def clone_edit_frac_violin(plot_name, tdata, clones = None, figsize = (6,1)):
+    """Plot distribution of detection rates for each clone"""
+    # Get detection rate
+    calculate_edit_frac(tdata)
+    edit_fracs = tdata.obs.query("clone.notnull()").sort_values("clone").copy()
+    if clones is not None:
+        edit_fracs = edit_fracs.query("clone in @clones").copy()
+    edit_fracs["edit_pct"] = edit_fracs["edit_frac"]*100
+    edit_fracs.clone = edit_fracs.clone.astype(str)
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
+    sns.violinplot(data = edit_fracs,y = "edit_pct",x = "clone",color = "lightgrey",width = 0.8,density_norm="width",
+                ax = ax,linewidth=.5,linecolor="black",cut = 0,saturation=1,inner="quart")
+    y_mean = edit_fracs.groupby("clone")["edit_pct"].mean().mean()
+    yticks = list(ax.get_yticks()) + [y_mean]
+    yticks = sorted(yticks)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([f"{tick:4.0f}" for tick in yticks])
+    plt.xlabel("")
+    plt.xticks(rotation=90,size = 7.5)
+    plt.ylim(0,100)
+    plt.ylabel("Sites with\nLM (%)")
+    save_plot(fig, plot_name, plots_path)
+
+
 if __name__ == "__main__":
     # Load data
     print(f"Loading data from {data_path}")
@@ -257,6 +282,7 @@ if __name__ == "__main__":
     for metric in ["n_cells","edit_sites","site_edit_frac"]:
         clone_stats_barplot(f"clone_{metric}_barplot",metric,figsize = (6,1))
     clone_detection_violin("clone_detection_violin",tdata,figsize = (6,1))
+    clone_edit_frac_violin("clone_edit_frac_violin", tdata, clones = None, figsize = (6.5,1))
     # Plot spatial distribution
     colonies_slide("colonies_slide",tdata)
     edit_spatial_distribution("clone_3",tdata,"3",{"intID1862-RNF2":"3","intID343-EMX1":"7","intID1364-HEK3":"4"})
@@ -268,8 +294,7 @@ if __name__ == "__main__":
     for clone in ["3","5","8","9"]:
         petracer.plotting.distance_comparison_scatter(f"clone_{clone}_phylo_vs_spatial",plots_path,
             get_clone_tdata(tdata,clone),x = "tree",y = "spatial",figsize = (2,1.9))
-    petracer.plotting.distance_comparison_scatter(f"clone_3_phylo_vs_character",plots_path,
+    petracer.plotting.distance_comparison_scatter("clone_3_phylo_vs_character",plots_path,
             get_clone_tdata(tdata,"3"),x = "character",y = "tree",figsize = (2,1.9),sample_n=50000)
     spatial_distance_lineplot("clone_3_spatial_distance",get_clone_tdata(tdata,"3"),figsize = (2,1.9))
-    
 
