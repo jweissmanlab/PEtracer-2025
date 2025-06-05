@@ -49,9 +49,9 @@ python simulation/plot.py
 ```
 # Prime editing strategy selection
 
-The [insertvariants](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants) directory 
-contains code for processing and analyzing amplicon sequencing data used to select edit sites
-and editing strategies for the PETracer system.
+The [insertvariants](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants) and [RTT_optimization](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/RTT_optimization) directories 
+contain code for processing and analyzing amplicon sequencing data used to select edit sites
+and optimize editing strategies for the PEtracer system.
 
 ### Data processing
 
