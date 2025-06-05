@@ -81,6 +81,7 @@ efficiencies of all 1024 5nt insertions for each edit site.
 ```bash 
 ./crispresso.sh
 ```
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq/manifest.txt)  from [SRA](Add SRA link) and placing them in the [insert_selection/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq) directory.
 
 2. **aggregate_crispresso.ipynb** - aggregate CRISPResso output files for all sites.
 3. **crosshyb.py** - estimate 5nt insert cross-hybridization
