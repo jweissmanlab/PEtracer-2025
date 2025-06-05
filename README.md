@@ -59,7 +59,7 @@ Sequencing data was processed on a Linux HPC cluster with SLURM, Python 3.11, an
 
 ```bash 
 ./crispresso.sh
-Rscript ../scripts/make_CRISPResso_summary.R ./ data/CRISPResso_summary.txt
+Rscript ../../scripts/make_CRISPResso_summary.R ./ CRISPResso_summary.txt
 ```
 
 after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq/manifest.txt) from [SRA](Add SRA link) and placing them in the [strategy_selection/insertvariants/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq) directory.
