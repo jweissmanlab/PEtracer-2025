@@ -26,7 +26,7 @@ Image processing was performed on a linux HPC cluster with the following softwar
 * [Proseg v1.1.3](https://github.com/dcjones/proseg)
 * [Fishtank v0.0.1](https://fishtank-jsw.readthedocs.io/en/latest/index.html)
 * [MERlin v0.1.8](https://github.com/zhengpuas47/MERlin)
-
+* [MERFISH_probe_design](https://github.com/zhengpuas47/MERFISH_probe_design/releases/tag/v0.0.1)
 
 # Data availability
 
@@ -168,11 +168,12 @@ after processing the raw data or downloading the processed files from [Figshare]
 
 # Integration barcode design
 
-Detailed integration barcode design 
+Detailed integration barcode design jupyter notebooks are in folder *design_intBC*. 
 
 # Probe design
 
-@zhengpuas47 please fill in this section.
+Detailed MERFISH and PEtracer probe design are in folder *design_probes*. This part requires installation of package: [MERFISH_probe_design](https://github.com/zhengpuas47/MERFISH_probe_design/releases/tag/v0.0.1)
+
 
 # Image processing
 
@@ -204,7 +205,7 @@ sbatch image_processing/241213_F320-4-3_MF4++/Scripts/cellpose.slurm
 >> ```bash
 >> merlin --configure .
 >> ```
->> Then follow the instruction. \
+>> Then follow the instruction. 
 >
 > Run MERLin:
 >> Example command:
