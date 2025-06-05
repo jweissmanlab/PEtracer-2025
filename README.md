@@ -31,8 +31,8 @@ Image processing was performed on a linux HPC cluster with the following softwar
 # Data availability
 
 * Processed data is available on [Figshare](https://figshare.com/s/8e9d573deca3d44235fe)
-* Single-cell RNA-seq data is available on [GEO](Add GEO link)
-* All other sequencing data is available on [SRA](Add SRA link)
+* Single-cell RNA-seq data is available on [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975)
+* All other sequencing data is available on [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108)
 
 # Simulation
 
@@ -62,7 +62,7 @@ Sequencing data was processed on a Linux HPC cluster with SLURM, Python 3.11, an
 Rscript ../../scripts/make_CRISPResso_summary.R ./ CRISPResso_summary.txt
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq/manifest.txt) from [SRA](Add SRA link) and placing them in the [strategy_selection/insertvariants/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [strategy_selection/insertvariants/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq) directory.
 
 ### Analysis
 
@@ -81,7 +81,7 @@ efficiencies of all 1024 5nt insertions for each edit site.
 ```bash 
 ./crispresso.sh
 ```
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq/manifest.txt)  from [SRA](Add SRA link) and placing them in the [insert_selection/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq/manifest.txt)  from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [insert_selection/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq) directory.
 
 2. **aggregate_crispresso.ipynb** - aggregate CRISPResso output files for all sites.
 3. **crosshyb.py** - estimate 5nt insert cross-hybridization
@@ -124,7 +124,7 @@ sbatch peg_arrays/crispresso.slurm
 python peg_arrays/count_alleles.py
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays/fastq/manifest.txt) from [SRA](Add SRA link) and placing them in the [peg_arrays/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [peg_arrays/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays/fastq) directory.
 
 ### Analysis
 
@@ -153,7 +153,7 @@ sbatch kinetics/call_alleles.slurm
 3. **process_B16F10_10x.ipynb** - perform quality control, call pegRNA variants, and determine edit fraction for B16F10 cells.
 
 
-after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics/fastq/manifest.txt) from [GEO](Add GEO link) and placing them in the [kinetics/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics/fastq) directory.
+after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [kinetics/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics/fastq) directory.
 
 ### Analysis
 
@@ -248,7 +248,7 @@ sbatch image_processing/241213_F320-4-3_MF4++/Scripts/decode_spots.slurm
 
 This process was repeated for each imaging experiment, except for experiments without MERFISH data, which only required steps 1, 5, and 6.
 
-# Predifined lineage mark validation
+# Predefined lineage mark validation
 
 The [preedited](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited) directory 
 contains code for processing and analyzing 10x and imaging-based readout of lineage tracing data
@@ -270,7 +270,7 @@ sbatch preedited/call_alleles.slurm
 4. **process_merfish_zombie.ipynb** - perform quality control for imaging in vitro data using the zombie protocol.
 5. **process_merfish_invivio.ipynb** - perform quality control for imaging in vivo data.
 
-after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited/fastq/manifest.txt) from [GEO](Add GEO link) and placing them in the [preedited/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited/fastq) directory.
+after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [preedited/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited/fastq) directory.
 
 ### Analysis
 
@@ -307,7 +307,7 @@ sbatch barcoded_tracing/call_alleles.slurm
 ```
 2. **process_10x.ipynb** - performs quality control, phylogenetic reconstruction, and processing of barcode data.
 
-after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq/manifest.txt) from [GEO](Add GEO link) and placing them in the [barcoded_tracing/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq) directory.
+after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [barcoded_tracing/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq) directory.
 
 ### Analysis
 
@@ -364,7 +364,7 @@ sbatch invitro_heterogeneity/call_alleles.slurm
 ```
 2. **process_10x.ipynb** - performs quality control and clustering.
 
-after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity/fastq/manifest.txt) from [GEO](Add GEO link) and placing them in the [invitro_heterogeneity/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity/fastq) directory.
+after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [invitro_heterogeneity/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity/fastq) directory.
 
 ### Analysis
 
