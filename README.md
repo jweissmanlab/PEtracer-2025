@@ -116,7 +116,7 @@ Sequencing data was processed on a Linux HPC cluster with SLURM, Python 3.11, an
 Rscript ../scripts/make_CRISPResso_summary.R ./ CRISPResso_summary.txt
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [strategy_selection/orthogonalization/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [orthogonalization/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization/fastq) directory.
 
 ### Analysis
 
