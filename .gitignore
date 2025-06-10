@@ -24,6 +24,9 @@ __pycache__/
 *.npy
 *.gif
 *.txt
+*fastq.ipynb
+*.zip
+.*
 
 # development files
 dev.ipynb
