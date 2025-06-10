@@ -1,9 +1,9 @@
 # PEtracer 2025
 
 This repository contains the code to reproduce all analyses and figures from the manuscript 
-"High-resolution spatial mapping of cell state and lineage dynamics in vivo with PETracer".
+"High-resolution spatial mapping of cell state and lineage dynamics in vivo with PEtracer".
 
-![](https://github.com/jweissmanlab/PETracer_Paper/blob/main/img.jpg)
+![](https://github.com/jweissmanlab/PEtracer-2025/blob/main/img.jpg)
 # Setup
 
 ### Python environment
@@ -13,7 +13,7 @@ conda env create --file environment.yml
 conda activate petracer
 ipython kernel install --user --name petracer
 ```
-The [environment.lock.yml](https://github.com/jweissmanlab/PETracer_Paper/tree/main/environment.lock.yml) file can be used to recreate the environment with the exact package versions used in the paper.
+The [environment.lock.yml](https://github.com/jweissmanlab/PEtracer-2025/tree/main/environment.lock.yml) file can be used to recreate the environment with the exact package versions used in the paper.
 
 ### Image processing environment
 
@@ -36,7 +36,7 @@ Image processing was performed on a linux HPC cluster with the following softwar
 
 # Simulation
 
-The [simulation](https://github.com/jweissmanlab/PETracer_Paper/tree/main/simulation) directory 
+The [simulation](https://github.com/jweissmanlab/PEtracer-2025/tree/main/simulation) directory 
 contains code for simulating lineage tracing data with a variety of parameters. To run simulations:
 
 ```bash 
@@ -49,7 +49,7 @@ python simulation/plot.py
 ```
 # Prime editing strategy selection
 
-The [insertvariants](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants) and [RTT_optimization](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/RTT_optimization) directories 
+The [insertvariants](https://github.com/jweissmanlab/PEtracer-2025/tree/main/strategy_selection/insertvariants) and [RTT_optimization](https://github.com/jweissmanlab/PEtracer-2025/tree/main/strategy_selection/RTT_optimization) directories 
 contain code for processing and analyzing amplicon sequencing data used to select edit sites
 and optimize editing strategies for the PEtracer system.
 
@@ -62,7 +62,7 @@ Sequencing data was processed on a Linux HPC cluster with SLURM, Python 3.11, an
 Rscript ../../scripts/make_CRISPResso_summary.R ./ CRISPResso_summary.txt
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [strategy_selection/insertvariants/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/strategy_selection/insertvariants/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/strategy_selection/insertvariants/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [strategy_selection/insertvariants/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/strategy_selection/insertvariants/fastq) directory.
 
 ### Analysis
 
@@ -70,7 +70,7 @@ after downloading the fastq files listed in [manifest.txt](https://github.com/jw
 
 # 5nt insert selection
 
-The [insert_selection](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection) directory 
+The [insert_selection](https://github.com/jweissmanlab/PEtracer-2025/tree/main/insert_selection) directory 
 contains code for processing and analyzing target site sequencing data used to determine the installation 
 efficiencies of all 1024 5nt insertions for each edit site.
 
@@ -81,7 +81,7 @@ efficiencies of all 1024 5nt insertions for each edit site.
 ```bash 
 ./crispresso.sh
 ```
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq/manifest.txt)  from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [insert_selection/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_selection/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/insert_selection/fastq/manifest.txt)  from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [insert_selection/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/insert_selection/fastq) directory.
 
 2. **aggregate_crispresso.ipynb** - aggregate CRISPResso output files for all sites.
 3. **crosshyb.py** - estimate 5nt insert cross-hybridization
@@ -95,7 +95,7 @@ python insert_selection/plot.py
 
 # Insert validation
 
-The [insert_validation](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_validation) directory 
+The [insert_validation](https://github.com/jweissmanlab/PEtracer-2025/tree/main/insert_validation) directory 
 contains code for processing and analyzing amplicon sequencing data used for arrayed validation of the top 5nt insertions
 for each edit site.
 
@@ -108,7 +108,7 @@ Sequencing data was processed on a Linux HPC cluster with SLURM, Python 3.11, an
 Rscript ../scripts/make_CRISPResso_summary.R ./ CRISPResso_summary.txt
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_validation/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [insert_validation/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/insert_validation/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/insert_validation/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [insert_validation/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/insert_validation/fastq) directory.
 
 ### Analysis
 
@@ -116,7 +116,7 @@ after downloading the fastq files listed in [manifest.txt](https://github.com/jw
 
 # Orthogonalization
 
-The [orthogonalization](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization) directory 
+The [orthogonalization](https://github.com/jweissmanlab/PEtracer-2025/tree/main/orthogonalization) directory 
 contains code for processing and analyzing amplicon sequencing data used for validating orthogonalized versions
 of the RNF2, HEK3, and EMX1 edit sites.
 
@@ -129,7 +129,7 @@ Sequencing data was processed on a Linux HPC cluster with SLURM, Python 3.11, an
 Rscript ../scripts/make_CRISPResso_summary.R ./ CRISPResso_summary.txt
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [orthogonalization/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonalization/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/orthogonalization/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [orthogonalization/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/orthogonalization/fastq) directory.
 
 ### Analysis
 
@@ -137,7 +137,7 @@ after downloading the fastq files listed in [manifest.txt](https://github.com/jw
 
 # Orthogonal insert validation
 
-The [orthogonal_insert_validation](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonal_insert_validation) directory 
+The [orthogonal_insert_validation](https://github.com/jweissmanlab/PEtracer-2025/tree/main/orthogonal_insert_validation) directory 
 contains code for processing and analyzing amplicon sequencing data used for validating the top 20 5nt insertions at each orthogonalized edit site.
 
 ### Data processing
@@ -149,7 +149,7 @@ Sequencing data was processed on a Linux HPC cluster with SLURM, Python 3.11, an
 Rscript ../scripts/make_CRISPResso_summary.R ./ CRISPResso_summary.txt
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonal_insert_validation/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [orthogonal_insert_validation/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/orthogonal_insert_validation/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/orthogonal_insert_validation/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [orthogonal_insert_validation/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/orthogonal_insert_validation/fastq) directory.
 
 ### Analysis
 
@@ -157,7 +157,7 @@ after downloading the fastq files listed in [manifest.txt](https://github.com/jw
 
 # pegArray balance
 
-The [peg_arrays](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays) directory 
+The [peg_arrays](https://github.com/jweissmanlab/PEtracer-2025/tree/main/peg_arrays) directory 
 contains code for processing and analyzing target site sequencing data used to determine the LM installation 
 balance for various pegArrays.
 
@@ -170,7 +170,7 @@ sbatch peg_arrays/crispresso.slurm
 python peg_arrays/count_alleles.py
 ```
 
-after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [peg_arrays/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/peg_arrays/fastq) directory.
+after downloading the fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/peg_arrays/fastq/manifest.txt) from [SRA](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA1231108) and placing them in the [peg_arrays/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/peg_arrays/fastq) directory.
 
 ### Analysis
 
@@ -181,7 +181,7 @@ python peg_arrays/plot.py
 
 # pegRNA variant kinetics
 
-The [kinetics](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics) directory 
+The [kinetics](https://github.com/jweissmanlab/PEtracer-2025/tree/main/kinetics) directory 
 contains code for processing and analyzing 10x data for 4T1 and B16 cells transduced with a library
 of pegRNA variants to test editing kinetics.
 
@@ -199,7 +199,7 @@ sbatch kinetics/call_alleles.slurm
 3. **process_B16F10_10x.ipynb** - perform quality control, call pegRNA variants, and determine edit fraction for B16F10 cells.
 
 
-after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [kinetics/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics/fastq) directory.
+after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/kinetics/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [kinetics/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/kinetics/fastq) directory.
 
 ### Analysis
 
@@ -208,7 +208,7 @@ All kinetics analysis and plots can be generated by running
 python kinetics/estimate_rate.py
 python kinetics/plot.py
 ```
-after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [kinetics/data](https://github.com/jweissmanlab/PETracer_Paper/tree/main/kinetics/data) directory:
+after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [kinetics/data](https://github.com/jweissmanlab/PEtracer-2025/tree/main/kinetics/data) directory:
 
 * 4T1_kinetics_alleles.csv
 * 4T1_kinetics_cells.csv
@@ -228,7 +228,7 @@ Detailed MERFISH and PEtracer probe design are in folder *design_probes*. This p
 
 # Image processing
 
-The [image_processing](https://github.com/jweissmanlab/PETracer_Paper/tree/main/image_processing) directory 
+The [image_processing](https://github.com/jweissmanlab/PEtracer-2025/tree/main/image_processing) directory 
 contains code for processing imaging data. Raw imaging files are not publicly available due to file size, but code can be used to process other imaging data in the same format. Processed files for each experiment (e.g. 241213_F320-4-3_MF4++) can be generated with the following steps:
 
 1. Nuclei segmentation using Cellpose and Deconwolf
@@ -296,7 +296,7 @@ This process was repeated for each imaging experiment, except for experiments wi
 
 # Predefined lineage mark validation
 
-The [preedited](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited) directory 
+The [preedited](https://github.com/jweissmanlab/PEtracer-2025/tree/main/preedited) directory 
 contains code for processing and analyzing 10x and imaging-based readout of lineage tracing data
 from cells with predefined linkage between intBCs and lineage marks.
 
@@ -316,7 +316,7 @@ sbatch preedited/call_alleles.slurm
 4. **process_merfish_zombie.ipynb** - perform quality control for imaging in vitro data using the zombie protocol.
 5. **process_merfish_invivio.ipynb** - perform quality control for imaging in vivo data.
 
-after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [preedited/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/preedited/fastq) directory.
+after downloading the 10x fastq files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/preedited/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [preedited/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/preedited/fastq) directory.
 
 ### Analysis
 
@@ -324,7 +324,7 @@ All preedited analysis and plots can be generated by running
 ```bash
 python preedited/plot.py
 ```
-after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [peedited/data](https://github.com/jweissmanlab/PETracer_Paper/tree/main/colony_tracing/data) directory:
+after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [peedited/data](https://github.com/jweissmanlab/PEtracer-2025/tree/main/colony_tracing/data) directory:
 
 * preedited_10x_invitro_alleles.csv
 * preedited_10x_invitro.h5ad
@@ -337,7 +337,7 @@ after processing the raw data or downloading the processed files from [Figshare]
 
 # Barcoded lineage tracing
 
-The [barcoded_tracing](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing) directory 
+The [barcoded_tracing](https://github.com/jweissmanlab/PEtracer-2025/tree/main/barcoded_tracing) directory 
 contains code for processing and analyzing 10x single-cell lineage tracing for clones with puro and blast-linked
 static barcodes serving as independent validation of phylogenetic relationships.
 
@@ -353,7 +353,7 @@ sbatch barcoded_tracing/call_alleles.slurm
 ```
 2. **process_10x.ipynb** - performs quality control, phylogenetic reconstruction, and processing of barcode data.
 
-after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [barcoded_tracing/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/barcoded_tracing/fastq) directory.
+after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/barcoded_tracing/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [barcoded_tracing/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/barcoded_tracing/fastq) directory.
 
 ### Analysis
 
@@ -362,7 +362,7 @@ All barcoded tracing analysis and plots can be generated by running
 python barcoded_tracing/evaluate.py
 python barcoded_tracing/plot.py
 ```
-after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [colony_tracing/data](https://github.com/jweissmanlab/PETracer_Paper/tree/main/colony_tracing/data) directory:
+after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [colony_tracing/data](https://github.com/jweissmanlab/PEtracer-2025/tree/main/colony_tracing/data) directory:
 
 * barcoded_tracing_clone_1.h5td
 * barcoded_tracing_clone_2.h5td
@@ -374,7 +374,7 @@ after processing the raw data or downloading the processed files from [Figshare]
 
 # Colony lineage tracing
 
-The [colony_tracing](https://github.com/jweissmanlab/PETracer_Paper/tree/main/colony_tracing) directory 
+The [colony_tracing](https://github.com/jweissmanlab/PEtracer-2025/tree/main/colony_tracing) directory 
 contains code for processing and analyzing single-cell lineage tracing from colonies generated by 
 sparsely seeding 4T1 cells onto a coverslip.
 
@@ -390,13 +390,13 @@ All colony plots can be generated by running
 python colony_tracing/plot.py
 ```
 after the following files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) are downloaded 
-and placed in the [colony_tracing/data](https://github.com/jweissmanlab/PETracer_Paper/tree/main/colony_tracing/data) directory:
+and placed in the [colony_tracing/data](https://github.com/jweissmanlab/PEtracer-2025/tree/main/colony_tracing/data) directory:
 
 * colony_tracing.h5td
 * colony_polygons.json
 
 # 4T1 in vitro heterogeneity
-The [invitro_heterogeneity](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity) directory contains code for processing and analyzing single-cell data characterizing in vitro transcriptional heterogeneity in engineered 4T1 cells used to seed tumors.
+The [invitro_heterogeneity](https://github.com/jweissmanlab/PEtracer-2025/tree/main/invitro_heterogeneity) directory contains code for processing and analyzing single-cell data characterizing in vitro transcriptional heterogeneity in engineered 4T1 cells used to seed tumors.
 
 ### Data processing
 
@@ -410,7 +410,7 @@ sbatch invitro_heterogeneity/call_alleles.slurm
 ```
 2. **process_10x.ipynb** - performs quality control and clustering.
 
-after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [invitro_heterogeneity/fastq](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity/fastq) directory.
+after downloading the files listed in [manifest.txt](https://github.com/jweissmanlab/PEtracer-2025/tree/main/invitro_heterogeneity/fastq/manifest.txt) from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290975) and placing them in the [invitro_heterogeneity/fastq](https://github.com/jweissmanlab/PEtracer-2025/tree/main/invitro_heterogeneity/fastq) directory.
 
 ### Analysis
 
@@ -418,13 +418,13 @@ All in vitro heterogeneity analysis and plots can be generated by running
 ```bash
 python invitro_heterogeneity/plot.py
 ```
-after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [invitro_heterogeneity/data](https://github.com/jweissmanlab/PETracer_Paper/tree/main/invitro_heterogeneity/data) directory:
+after processing the raw data or downloading the processed files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) and placing them in [invitro_heterogeneity/data](https://github.com/jweissmanlab/PEtracer-2025/tree/main/invitro_heterogeneity/data) directory:
 
 * 4T1_invitro.h5ad
 
 # 4T1 tumor lineage tracing
 
-The [tumor_tracing](https://github.com/jweissmanlab/PETracer_Paper/tree/main/tumor_tracing) directory 
+The [tumor_tracing](https://github.com/jweissmanlab/PEtracer-2025/tree/main/tumor_tracing) directory 
 contains code for processing and analyzing single-cell transcriptomic and lineage tracing data 
 from the 4T1 syngeneic mouse model of tumor metastasis.
 
@@ -446,7 +446,7 @@ All tumor plots can be generated by running
 python tumor_tracing/plot.py
 ```
 after the following files from [Figshare](https://figshare.com/s/8e9d573deca3d44235fe) are downloaded 
-and placed in the [tumor_tracing/data](https://github.com/jweissmanlab/PETracer_Paper/tree/main/tumor_tracing/data) directory:
+and placed in the [tumor_tracing/data](https://github.com/jweissmanlab/PEtracer-2025/tree/main/tumor_tracing/data) directory:
 
 * 10x_4T1_primary.h5ad
 * M1_tumor_tracing.h5td
