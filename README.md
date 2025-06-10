@@ -26,7 +26,7 @@ Image processing was performed on a linux HPC cluster with the following softwar
 * [Proseg v1.1.3](https://github.com/dcjones/proseg)
 * [Fishtank v0.0.1](https://fishtank-jsw.readthedocs.io/en/latest/index.html)
 * [MERlin v0.1.8](https://github.com/zhengpuas47/MERlin)
-* [MERFISH_probe_design](https://github.com/zhengpuas47/MERFISH_probe_design/releases/tag/v0.0.1)
+* [MERFISH_probe_design v0.0.1](https://github.com/zhengpuas47/MERFISH_probe_design/releases/tag/v0.0.1)
 
 # Data availability
 
