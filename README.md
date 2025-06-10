@@ -237,7 +237,7 @@ sbatch image_processing/241213_F320-4-3_MF4++/Scripts/cellpose.slurm
 ```
 2. MERFISH transcript decoding using Merlin
 
-> Download the newest version of MERLin here: [Link to MERLin release](https://github.com/zhengpuas47/MERlin/releases/tag/v0.1.8)
+> Download the newest version of MERLin here: [v0.1.8](https://github.com/zhengpuas47/MERlin/releases/tag/v0.1.8)
 >> install the merlin by:
 >> ```bash
 >> conda create -n merlin_py310 python=3.10
