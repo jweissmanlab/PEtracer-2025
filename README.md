@@ -120,7 +120,7 @@ after downloading the fastq files listed in [manifest.txt](https://github.com/jw
 
 ### Analysis
 
-**plot.ipynb** - generate strategy selection plots.
+**plot.ipynb** - generate orthogonalization plots.
 
 # pegArray balance
 
