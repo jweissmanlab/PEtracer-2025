@@ -1160,10 +1160,18 @@ def scatter_with_regression(plot_name, tdata, x, xlabel, y, ylabel, figsize = (2
 def module_edit_frac_boxplot(plot_name,tdata,figsize = (2,2)):
     """Plot boxplot of edit fraction by module."""
     fig, ax = plt.subplots(figsize=figsize,dpi = 600, layout = "constrained")
-    sns.boxplot(data=tdata.obs,x="hotspot_module",y="edit_frac",hue = "hotspot_module",
-                 saturation = 1,palette = module_palette,legend = False)
-    plt.xlabel("Hotspot module")
-    plt.ylabel("Fraction of sites edited")
+    sns.boxplot(
+        data=tdata.obs,
+        y="hotspot_module",
+        x="edit_frac",
+        hue="hotspot_module",
+        saturation=1,
+        palette=module_palette,
+        legend=False,
+        flierprops={"markersize": 2}
+    )
+    plt.xlabel("Fraction of sites edited")
+    plt.ylabel("Hotspot\nmodule")
     save_plot(fig,plot_name,plots_path)
 
 
@@ -1197,6 +1205,35 @@ def neighborhood_enrichment_heatmap(plot_name, adata_merge, figsize=(4, 4)):
     )
     g.ax_heatmap.set(ylabel=None)
     save_plot(g, plot_name, plots_path)
+
+
+def fitness_vs_edit_frac_scatter(plot_name,clones,figsize):
+    # get edit fractions
+    df = []
+    for clone in use_clones:
+        calculate_edit_frac(clones[clone])
+        df.append(clones[clone].obs.assign(clone=clone))
+    df = pd.concat(df, ignore_index=True)
+    df["edit_frac"] = df["edit_frac"] * 100
+    # Plot
+    fig, ax = plt.subplots(figsize=(1.65, 1.65),layout='constrained',dpi = 300)
+    clone_colors = [colors[i] for i in [6,7,8,10,11]]
+    for i, clone in enumerate(df["clone"].unique()):
+        sns.regplot(data=df.query("clone == @clone"), x="edit_frac", y="fitness", 
+                    scatter_kws={'s': 1,"alpha": 0.3,"marker":".",'edgecolor': 'none'}, label=clone, color=clone_colors[i], line_kws={'linewidth': 1.5})
+    plt.legend(title="")
+    plt.xticks(np.arange(0, 110, 25))
+    plt.xlim(20,100)
+    sns.regplot(data=df, x="edit_frac", y="fitness", scatter=False, color="black", line_kws={"linestyle": "--",'linewidth': 2})
+    r = df["edit_frac"].corr(df["fitness"])
+    plt.text(0.05, 0.95, f"r = {r:.2f}", transform=ax.transAxes, fontsize=8, verticalalignment='top', horizontalalignment='left')
+    # Print r2 for each clone
+    print("Fitness vs edit fraction correlation:")
+    for clone in df["clone"].unique():
+        r = df.query("clone == @clone")["edit_frac"].corr(df.query("clone == @clone")["fitness"])
+        print(f"{clone}: r = {r:.2f}")
+    plt.xlabel("Edit sites with LM (%)")
+    save_plot(fig, plot_name, plots_path, rasterize=True)
 
 
 if __name__ == "__main__":
@@ -1386,9 +1423,10 @@ if __name__ == "__main__":
     plot_module_summary("M3-T1_leiden_cluster_summary",clones["M3-T1"],module_key = "leiden_cluster",palette= leiden_palette)
     module_phase_barplot("M3-T1_leiden_phase_barplot",clones["M3-T1"],module_key = "leiden_cluster",figsize = (1.8,1.4))
     scatter_with_regression("M3-T1_edit_frac_vs_fitness",clones["M3-T1"],"edit_frac","Fraction of sites edited","fitness","Fitness")
+    fitness_vs_edit_frac_scatter("fitness_vs_edit_frac_scatter", clones, figsize=(1.65, 1.65))
     plot_spatial("M3-T1_edit_frac_spatial",clones["M3-T1"],"edit_frac",cmap = "Blues",colorbar_loc = "right",
                     vmin = 0, vmax = 1,figsize = (5,2))
-    module_edit_frac_boxplot("M3-T1_module_edit_frac_boxplot",clones["M3-T1"],figsize = (2,2))
+    module_edit_frac_boxplot("module_edit_frac_boxplot", clones["M3-T1"], figsize = (2,1))
     clade_edit_frac_boxplot("M3-T1_clade_edit_frac_boxplot",clones["M3-T1"],figsize = (3,2))
 
 

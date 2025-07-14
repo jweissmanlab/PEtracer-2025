@@ -1,39 +1,39 @@
-B16_D10_EMX1_array1_v1_rep1.fastq.gz*
-B16_D10_EMX1_array1_v1_rep2.fastq.gz*
-B16_D10_EMX1_array1_v2_rep1.fastq.gz*
-B16_D10_EMX1_array1_v2_rep2.fastq.gz*
-B16_D10_EMX1_array2_v1_rep1.fastq.gz*
-B16_D10_EMX1_array2_v1_rep2.fastq.gz*
-B16_D10_EMX1_array2_v2_rep1.fastq.gz*
-B16_D10_EMX1_array2_v2_rep2.fastq.gz*
-B16_D10_EMX1_array3_v1_rep1.fastq.gz*
-B16_D10_EMX1_array3_v1_rep2.fastq.gz*
-B16_D10_EMX1_array3_v2_rep1.fastq.gz*
-B16_D10_EMX1_array3_v2_rep2.fastq.gz*
-B16_D10_HEK3_array1_v1_rep1.fastq.gz*
-B16_D10_HEK3_array1_v1_rep2.fastq.gz*
-B16_D10_HEK3_array1_v2_rep1.fastq.gz*
-B16_D10_HEK3_array1_v2_rep2.fastq.gz*
-B16_D10_HEK3_array2_v1_rep1.fastq.gz*
-B16_D10_HEK3_array2_v1_rep2.fastq.gz*
-B16_D10_HEK3_array2_v2_rep1.fastq.gz*
-B16_D10_HEK3_array2_v2_rep2.fastq.gz*
-B16_D10_HEK3_array3_v1_rep1.fastq.gz*
-B16_D10_HEK3_array3_v1_rep2.fastq.gz*
-B16_D10_HEK3_array3_v2_rep1.fastq.gz*
-B16_D10_HEK3_array3_v2_rep2.fastq.gz*
-B16_D10_HER_24mer_v1_rep1.fastq.gz*
-B16_D10_HER_24mer_v1_rep2.fastq.gz*
-B16_D10_RNF2_array1_v1_rep1.fastq.gz*
-B16_D10_RNF2_array1_v1_rep2.fastq.gz*
-B16_D10_RNF2_array1_v2_rep1.fastq.gz*
-B16_D10_RNF2_array1_v2_rep2.fastq.gz*
-B16_D10_RNF2_array2_v1_rep1.fastq.gz*
-B16_D10_RNF2_array2_v1_rep2.fastq.gz*
-B16_D10_RNF2_array2_v2_rep1.fastq.gz*
-B16_D10_RNF2_array2_v2_rep2.fastq.gz*
-B16_D10_RNF2_array3_v1_rep1.fastq.gz*
-B16_D10_RNF2_array3_v1_rep2.fastq.gz*
-B16_D10_RNF2_array3_v2_rep1.fastq.gz*
-B16_D10_RNF2_array3_v2_rep2.fastq.gz*
-manifest.txt
+fastq	Accession
+B16_D10_EMX1_array1_v1_rep1.fastq.gz	SRR34074847
+B16_D10_EMX1_array1_v1_rep2.fastq.gz	SRR34074846
+B16_D10_EMX1_array1_v2_rep1.fastq.gz	SRR34074835
+B16_D10_EMX1_array1_v2_rep2.fastq.gz	SRR34074824
+B16_D10_EMX1_array2_v1_rep1.fastq.gz	SRR34074815
+B16_D10_EMX1_array2_v1_rep2.fastq.gz	SRR34074814
+B16_D10_EMX1_array2_v2_rep1.fastq.gz	SRR34074813
+B16_D10_EMX1_array2_v2_rep2.fastq.gz	SRR34074812
+B16_D10_EMX1_array3_v1_rep1.fastq.gz	SRR34074811
+B16_D10_EMX1_array3_v1_rep2.fastq.gz	SRR34074810
+B16_D10_EMX1_array3_v2_rep1.fastq.gz	SRR34074845
+B16_D10_EMX1_array3_v2_rep2.fastq.gz	SRR34074844
+B16_D10_HEK3_array1_v1_rep1.fastq.gz	SRR34074843
+B16_D10_HEK3_array1_v1_rep2.fastq.gz	SRR34074842
+B16_D10_HEK3_array1_v2_rep1.fastq.gz	SRR34074841
+B16_D10_HEK3_array1_v2_rep2.fastq.gz	SRR34074840
+B16_D10_HEK3_array2_v1_rep1.fastq.gz	SRR34074839
+B16_D10_HEK3_array2_v1_rep2.fastq.gz	SRR34074838
+B16_D10_HEK3_array2_v2_rep1.fastq.gz	SRR34074837
+B16_D10_HEK3_array2_v2_rep2.fastq.gz	SRR34074836
+B16_D10_HEK3_array3_v1_rep1.fastq.gz	SRR34074834
+B16_D10_HEK3_array3_v1_rep2.fastq.gz	SRR34074833
+B16_D10_HEK3_array3_v2_rep1.fastq.gz	SRR34074832
+B16_D10_HEK3_array3_v2_rep2.fastq.gz	SRR34074831
+B16_D10_HER_24mer_v1_rep1.fastq.gz	SRR34074830
+B16_D10_HER_24mer_v1_rep2.fastq.gz	SRR34074829
+B16_D10_RNF2_array1_v1_rep1.fastq.gz	SRR34074828
+B16_D10_RNF2_array1_v1_rep2.fastq.gz	SRR34074827
+B16_D10_RNF2_array1_v2_rep1.fastq.gz	SRR34074826
+B16_D10_RNF2_array1_v2_rep2.fastq.gz	SRR34074825
+B16_D10_RNF2_array2_v1_rep1.fastq.gz	SRR34074823
+B16_D10_RNF2_array2_v1_rep2.fastq.gz	SRR34074822
+B16_D10_RNF2_array2_v2_rep1.fastq.gz	SRR34074821
+B16_D10_RNF2_array2_v2_rep2.fastq.gz	SRR34074820
+B16_D10_RNF2_array3_v1_rep1.fastq.gz	SRR34074819
+B16_D10_RNF2_array3_v1_rep2.fastq.gz	SRR34074818
+B16_D10_RNF2_array3_v2_rep1.fastq.gz	SRR34074817
+B16_D10_RNF2_array3_v2_rep2.fastq.gz	SRR34074816

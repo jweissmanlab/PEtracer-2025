@@ -1,1 +1,19 @@
-
+fastq	Accession
+pegRNAlib_gDNA_EMX1_REP1_R1.fastq.gz	SRR33955555
+pegRNAlib_gDNA_EMX1_REP2_R1.fastq.gz	SRR33955554
+pegRNAlib_gDNA_EMX1_REP3_R1.fastq.gz	SRR33955763
+pegRNAlib_gDNA_HEK3_REP1_R1.fastq.gz	SRR33956031
+pegRNAlib_gDNA_HEK3_REP2_R1.fastq.gz	SRR33955984
+pegRNAlib_gDNA_HEK3_REP3_R1.fastq.gz	SRR33955718
+pegRNAlib_gDNA_RNF2_REP1_R1.fastq.gz	SRR33955415
+pegRNAlib_gDNA_RNF2_REP2_R1.fastq.gz	SRR33955368
+pegRNAlib_gDNA_RNF2_REP3_R1.fastq.gz	SRR33955321
+pegRNAlib_plasmid_EMX1_REP1_R1.fastq.gz	SRR33955902
+pegRNAlib_plasmid_EMX1_REP2_R1.fastq.gz	SRR33955553
+pegRNAlib_plasmid_EMX1_REP3_R1.fastq.gz	SRR33955542
+pegRNAlib_plasmid_HEK3_REP1_R1.fastq.gz	SRR33955531
+pegRNAlib_plasmid_HEK3_REP2_R1.fastq.gz	SRR33955520
+pegRNAlib_plasmid_HEK3_REP3_R1.fastq.gz	SRR33955509
+pegRNAlib_plasmid_RNF2_REP1_R1.fastq.gz	SRR33955498
+pegRNAlib_plasmid_RNF2_REP2_R1.fastq.gz	SRR33955295
+pegRNAlib_plasmid_RNF2_REP3_R1.fastq.gz	SRR33955284
