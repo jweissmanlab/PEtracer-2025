@@ -1,4 +1,6 @@
+from importlib import resources
 from pathlib import Path
+
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -182,7 +184,8 @@ def get_clade_palette(tdata,key = "clade"):
 
 def set_theme(figsize=(3, 3), dpi=200):
     """Set the default style for the plots"""
-    plt.style.use(base_path / "plot.mplstyle")
+    with resources.path("petracer", "plot.mplstyle") as style_path:
+        plt.style.use(style_path)
     plt.rcParams["svg.fonttype"] = "none"
     plt.rcParams["figure.figsize"] = figsize
     plt.rcParams["figure.dpi"] = dpi

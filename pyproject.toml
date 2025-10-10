@@ -95,3 +95,6 @@ convention = "numpy"
 "docs/*" = ["I"]
 "tests/*" = ["D"]
 "*/__init__.py" = ["F401"]
+
+[tool.setuptools.package-data]
+tracertools = ["plot.mplstyle"]
